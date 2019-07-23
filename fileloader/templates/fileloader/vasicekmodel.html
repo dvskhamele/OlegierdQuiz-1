@@ -1,0 +1,25 @@
+{% extends 'fileloader/base.html' %}
+
+{% block title %} Set Up ESG {% endblock%}
+
+{% block body %}
+{% load static %}
+
+
+<div class="limiter">
+	<div class="container-login100" style="background-image: url('{% static 'images/img-01.jpg' %}');">
+		<div class="wrap-login100 p-t-30 p-b-30">
+			<form method="post">
+				{% csrf_token %}
+				{{ form.as_p }}
+				<button class="login100-form-btn" type="submit">Upload</button>
+			</form>
+			<br>
+      <a href= "{% url 'index' %}" class="login100-form-btn" >Return to home</a>
+      <br>
+      <a href= "{% url 'pagelogout' %}" class="login100-form-btn" >Logout</a>
+		</div>
+	</div>
+</div>
+
+{% endblock %}

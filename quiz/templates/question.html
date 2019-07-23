@@ -1,0 +1,97 @@
+{% extends "base2.html" %}
+{% load i18n%}
+{% load static %}
+
+{% load quiz_tags %}
+
+{% block title %} {{ quiz.title }} {% endblock %}
+{% block description %} {{ quiz.title }} - {{ quiz.description }} {% endblock %}
+
+{% block body %}
+
+<div class="limiter">
+  <div class="container-login100"  style="background-image: url('{% static 'images/img-01.jpg' %}');">
+    <div class="wrap-login100 p-t-30 p-b-10">
+    {% if previous.answers %}
+
+      <p class="muted"><small>{% trans "The previous question" %}:</small></p>
+      <p>{{ previous.previous_question }}</p>
+
+      {% if previous.previous_outcome %}
+    	<div class="alert alert-success">
+      {% else %}
+    	<div class="alert alert-warning">
+      {% endif %}
+      	  <p><small>
+    		{% trans "Your answer was" %} </small>
+    		<strong>
+    		  {{ previous.previous_outcome|yesno:"correct,incorrect" }}
+    		</strong>
+    	  </p>
+
+    	</div>
+
+    	{% include 'correct_answer.html' %}
+
+    	<p><strong>{% trans "Explanation" %}:</strong></p>
+    	<div class="well " style="background-color: #fcf8e3;">
+    	  <p>{{ previous.previous_question.explanation }}</p>
+    	</div>
+
+    	<hr>
+
+    {% endif %}
+
+
+
+    <br /> 
+
+    {% if question %}
+
+    {% if progress %}
+    <div style="float: right;">
+    {% trans "Question" %} 
+    {{ progress.0|add:1 }}
+    {% if progress.0|add:1 <= progress.1 %}
+
+     {% trans "of" %} {{ progress.1 }}
+
+    {% endif %}
+    </div>
+    {% endif %}
+
+    <br>
+    <br>
+    <span class="login100-form-title p-t-1 p-b-45"> {{ question.content }} </span>
+    <br>
+
+    {% if question.figure %}
+        <img src="{{ question.figure.url }}" alt="{{ question.content }}" />
+    {% endif %}
+
+    <form action="" method="POST">{% csrf_token %}
+        <input type=hidden name="question_id" value="{{ question.id }}">
+
+    	{% for answer in form.answers %}
+    	  <h2> {{ answer }} </h2>
+    	  <br>
+    	{% endfor %} 
+
+        <br>
+        <input type="submit" value={% trans "Check" %} class="login100-form-btn" >
+    </form>
+
+    {% endif %}
+
+    <hr>
+
+    <a href= "{% url 'quiz_index' %}" class="login100-form-btn" >Return to the list of e-learnings</a>
+    <br>
+    <a href= "{% url 'index' %}" class="login100-form-btn" >Return to home</a>
+    <br>
+    <a href= "{% url 'pagelogout' %}" class="login100-form-btn" >Logout</a>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends 'fileloader/base.html' %}
+
+{% block title %} Set Up ESG {% endblock%}
+
+{% block body %}
+{% load static %}
+
+
+<div class="limiter">
+	<div class="container-login100" style="background-image: url('{% static 'images/img-01.jpg' %}');">
+		<div class="wrap-login100 p-t-30 p-b-30">
+			<span class="login100-form-title p-t-20 p-b-45">Please choose the interest rates model that you wanna use: </span>
+			<br>
+			<a href= "{% url 'esg_setup' %}" class="login100-form-btn" >EIOPA + sigma Model</a>
+			<br>
+      <a href= "{% url 'vasicekmodel' %}" class="login100-form-btn" >Vasicek Model</a>
+			<br>
+      <a href= "{% url 'cirmodel' %}" class="login100-form-btn" >Cox-Ingresol-Ross Model</a>
+			<br>
+      <a href= "{% url 'hwmodel' %}" class="login100-form-btn" >Hull-White Model</a>
+			<br>
+			<a href= "{% url 'lmmplusmodel' %}" class="login100-form-btn" >LMM+ Model</a>
+			<br>
+      <a href= "{% url 'index' %}" class="login100-form-btn" >Return to home</a>
+      <br>
+      <a href= "{% url 'pagelogout' %}" class="login100-form-btn" >Logout</a>
+		</div>
+	</div>
+</div>
+
+{% endblock %}

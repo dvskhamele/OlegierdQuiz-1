@@ -1,0 +1,35 @@
+{% extends 'fileloader/base.html' %}
+
+{% block title %} Start {% endblock%}
+
+{% block body %}
+{% load static %}
+
+	<div class="limiter">
+		<div class="container-login100" style="background-image: url('{% static 'images/img-01.jpg' %}');">
+
+
+
+			<div class="wrap-login100 p-t-190 p-b-30">
+				<form class="login100-form validate-form">
+					<div class="login100-form-avatar">
+						<img src="{% static 'images/sorry.jpg'  %}" alt="AVATAR">
+					</div>
+
+					<span class="login100-form-title p-t-20 p-b-45"> Sorry! This functionality is not ready yet :( </span>
+
+					<div class="container-login100-form-btn p-t-10" >
+								<a href= "{% url 'esg_choose_task' %}" class="login100-form-btn" >Go back to the choices</a>
+					</div>
+
+				</form>
+			</div>
+
+
+
+
+
+		</div>
+	</div>
+
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends 'fileloader/base.html' %}
+
+{% block title %} Start {% endblock%}
+
+{% block body %}
+{% load static %}
+<!-- <div class="limiter">
+		<div class="container-login100" style="background-image: url('{% static 'images/img-01.jpg' %}');">
+
+			<div class="wrap-login100 p-t-190 p-b-30">
+				<form class="login100-form validate-form">
+					<div class="login100-form-avatar">
+						<img src="{% static 'images/axn3.png'  %}" alt="AVATAR">
+					</div>
+<center>
+<form action="/select_questions/" method="post">
+    {% csrf_token %}
+    <label for="select_questions">Select Number of questions Display per Day: </label>
+    <input id="select_questions" type="number" name="select_questions" min="5" max="10"  value="{{ select_question }}">
+    <input type="submit" value="OK">
+</form>
+</center> -->
+<div class="limiter">
+	<div class="container-login100" style="background-image: url('{% static 'images/img-01.jpg' %}');">
+		<div class="wrap-login100 p-t-30 p-b-30">
+			<span class="login100-form-title p-t-20 p-b-45">Please choose Quiz you wanna do: </span>
+			<br>
+      <a href= "{% url 'quiz1_select' %}" class="login100-form-btn" >Quiz 1 </a>
+			<br>
+      <a href= "{% url 'quiz2_select' %}" class="login100-form-btn" >Quiz 2 </a>
+			<br>
+			<br>
+			<br>
+      <a href= "{% url 'index' %}" class="login100-form-btn" >Return to home</a>
+      <br>
+      <a href= "{% url 'pagelogout' %}" class="login100-form-btn" >Logout</a>
+		</div>
+	</div>
+</div>
+{% endblock %} 

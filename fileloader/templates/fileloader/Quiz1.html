@@ -1,0 +1,37 @@
+<!-- {% extends 'fileloader/base.html' %}
+
+{% block title %} Set Up ESG {% endblock%}
+
+{% block body %}
+{% load static %}
+
+	
+	<div class="limiter">
+		<div class="container-login100" style="background-image: url('{% static 'images/img-01.jpg' %}');">
+			<div class="wrap-login100 p-t-30 p-b-30">
+				<form class="question-form" action="{% url 'quiz_select' %}" method="POST">
+					{% csrf_token %}
+					<span class="login100-form-title p-t-20 p-b-45">Please choose Number of Question In Quiz : </span>
+					<br>
+      				<button type="submit" class="login100-form-btn" value="5" name="question" > 5 </button> 
+					<br>
+      				<button type="submit" class="login100-form-btn" value="10" name="question" > 10 </button>
+					<br>
+      				<button type="submit" class="login100-form-btn" value="15" name="question" > 15 </button>
+					<br>
+	
+				
+				</form>		
+			
+				<br>
+				<a href= "{% url 'index' %}" class="login100-form-btn" >Previous Page</a>
+				<br>
+      			<a href= "{% url 'index' %}" class="login100-form-btn" >Return to home</a>
+      			<br>
+      			<a href= "{% url 'pagelogout' %}" class="login100-form-btn" >Logout</a>
+			</div>
+		</div>
+	</div>
+ 
+{% endblock %}
+ -->

@@ -1,0 +1,43 @@
+{% extends 'fileloader/base.html' %}
+
+{% block title %} Upload {% endblock%}
+
+{% block body %}
+{% load static %}
+
+
+<div class="limiter">
+    <div class="container-login100" style="background-image: url('{% static 'images/img-01.jpg' %}');">
+
+
+		<div class="wrap-login100 p-t-30 p-b-10">
+      <div class="wrap-login150 p-t-30 p-b-a30">
+                  <span class="login100-form-title p-t-20 p-b-45"> Instructions: </span>
+
+                  <span class="login100-form-title p-t-5 p-b-5"> 1. Download the template by clicking the "Download Template" button </span>
+                  <br>
+                  <span class="login100-form-title p-t-5 p-b-5"> 2. Open the downloaded excel and adapt for your purposes. Save the changes</span>
+                  <br>
+                  <span class="login100-form-title p-t-5 p-b-5"> 3. Select the file you saved and click "Upload" button.  </span>
+      </div>
+
+      <br>
+      <a href= "{% url 'download_sample' %}" class="login100-form-btn" >Download Template</a>
+      <br>
+			<form method="post" enctype="multipart/form-data" >
+				{% csrf_token %}
+				{{ form.as_p }}
+        <br>
+				<button class="login100-form-btn" type="submit">Upload</button>
+			</form>
+      <br>
+      <a href= "{% url 'index' %}" class="login100-form-btn" >Return to home</a>
+      <br>
+      <a href= "{% url 'pagelogout' %}" class="login100-form-btn" >Logout</a>
+
+
+		</div>
+	</div>
+</div>
+
+{% endblock %}

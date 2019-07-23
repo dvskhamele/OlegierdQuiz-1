@@ -1,0 +1,44 @@
+{% extends 'fileloader/base.html' %}
+
+{% block title %} Download {% endblock%}
+
+{% block body %}
+{% load static %}
+
+	<div class="limiter">
+		<div class="container-login100" style="background-image: url('{% static 'images/img-01.jpg' %}');">
+
+
+
+			<div class="wrap-login100 p-t-190 p-b-30">
+				<form class="login100-form validate-form">
+					<div class="login100-form-avatar">
+						<img src="{% static 'images/success_kid.png'  %}" alt="AVATAR">
+					</div>
+
+					<span class="login100-form-title p-t-20 p-b-45">
+						Results have been successfully prepared!
+					</span>
+
+					<a href= "{% url 'download_file' %}" class="login100-form-btn" >Download results</a>
+					<br>
+					<br>
+					<br>
+					<a href= "{% url 'index' %}" class="login100-form-btn" >Return to home</a>
+					<br>
+					<br>
+					<br>
+					<a href= "{% url 'pagelogout' %}" class="login100-form-btn" >Logout</a>
+
+
+				</form>
+			</div>
+
+
+
+
+
+		</div>
+	</div>
+
+{% endblock %}

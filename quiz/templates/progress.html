@@ -1,0 +1,52 @@
+{% extends "base2.html" %}
+{% load i18n %}
+{% load static %}
+
+{% load quiz_tags %}
+
+{% block title %} {% trans "Progress Page" %} {% endblock %}
+{% block description %} {% trans "User Progress Page" %} {% endblock %}
+
+{% block body %}
+<div class="limiter">
+  <div class="container-login100"  style="background-image: url('{% static 'images/img-01.jpg' %}');">
+    <div class="wrap-login100 p-t-30 p-b-10">
+    <span class="login100-form-title p-t-5 p-b-1"> Quiz Summary </span>
+  {% if progress_report %}
+  
+      		<table class="table table-bordered table-striped">
+
+      		  <thead>
+      			<tr>
+      			  <th><span class="login100-form-title p-t-1 p-b-45"> E-learning</span></th>
+              <th><span class="login100-form-title p-t-1 p-b-45"> Progress</span></th>
+      			</tr>
+      		  </thead>
+      		  {% for c in progress_report %}
+      		  <tbody>
+
+        		<tr>
+ 
+
+      			  <td>
+                <a href="" class="login100-form-btn">{{ c.quiz }} </a>
+
+
+                <td><span class="login100-form-title p-t-1 p-b-45">{{ c.quiz_report }}  % </span></td>
+
+      			</tr>
+      		  
+	</tbody>
+	{% endfor %}
+  </table>
+
+  {% endif %}
+
+    <a href= "{% url 'quiz_index' %}" class="login100-form-btn" >Return to the list of e-learnings</a>
+    <br>
+    <a href= "{% url 'index' %}" class="login100-form-btn" >Return to home</a>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends 'base2.html' %}
+{% load i18n %}
+{% block title %}{% trans "E-learnings" %}{% endblock %}
+
+{% load static %}
+
+{% block body %}
+
+
+<div class="limiter">
+<div class="container-login100"  style="background-image: url('{% static 'images/img-01.jpg' %}');">
+  <div class="wrap-login100 p-t-30 p-b-10">
+      <span class="login100-form-title p-t-5 p-b-1"> List of e-learnings</span>
+
+          {% if quiz_list %}
+      		<table class="table table-bordered table-striped">
+
+      		  <thead>
+      			<tr>
+      			  <th><span class="login100-form-title p-t-1 p-b-45"> Training</span></th>
+              <th><span class="login100-form-title p-t-1 p-b-45"> Description</span></th>
+      			</tr>
+      		  </thead>
+
+      		  <tbody>
+ 
+              {% for quiz in quiz_list %}
+
+        			<tr>
+
+
+      			  <td>
+                <a href="{% url 'quiz_start_page' slug=quiz.url %}" class="login100-form-btn"> {{ quiz.title }} </a>
+
+
+                <td><span class="login100-form-title p-t-1 p-b-45"> {{ quiz.description }} </span></td>
+
+      			</tr>
+
+              {% endfor %}
+      		  </tbody>
+
+      		</table> 
+
+      	{% else %}
+              <p>{% trans "There are no available e-learnings" %}.</p>
+          {% endif %}
+
+          <a href= "{% url 'quiz_progress' %}" class="login100-form-btn" >See your progress list</a>
+          <br>
+          <a href= "{% url 'index' %}" class="login100-form-btn" >Return to home</a>
+          <br>
+          <a href= "{% url 'pagelogout' %}" class="login100-form-btn" >Logout</a>
+</div>
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends 'fileloader/base.html' %}
+
+{% block title %} Start {% endblock%}
+
+{% block body %}
+{% load static %}
+
+	<div class="limiter">
+		<div class="container-login100" style="background-image: url('{% static 'images/img-01.jpg' %}');">
+
+			<div class="wrap-login100 p-t-190 p-b-30">
+				<form class="login100-form validate-form">
+					<div class="login100-form-avatar">
+						<img src="{% static 'images/axn3.png'  %}" alt="AVATAR">
+					</div>
+
+					<span class="login100-form-title p-t-20 p-b-45">
+						Sample Testing App
+					</span>
+
+					<div class="container-login100-form-btn p-t-10" >
+						<a href= "{% url 'upload_file' %}" class="login100-form-btn" >Get started!</a>
+					</div>
+
+				</form>
+			</div>
+
+			<div class="wrap-login100 p-t-190 p-b-30">
+				<form class="login100-form validate-form">
+					<div class="login100-form-avatar">
+						<img src="{% static 'images/esg2.jpg'  %}" alt="AVATAR">
+					</div>
+
+					<span class="login100-form-title p-t-20 p-b-45">
+						ESG Solutions
+					</span>
+
+					<div class="container-login100-form-btn p-t-10" >
+						<a href= "{% url 'esg_choose_task' %}" class="login100-form-btn" >Get started!</a>
+					</div>
+
+				</form>
+			</div>
+
+
+			<div class="wrap-login100 p-t-190 p-b-30">
+				<form class="login100-form validate-form">
+					<div class="login100-form-avatar">
+						<img src="{% static 'images/learn2.png'  %}" alt="AVATAR">
+					</div>
+
+					<span class="login100-form-title p-t-20 p-b-45">
+						Actuarial E-learnings
+					</span>
+
+					<div class="container-login100-form-btn p-t-10" >
+							<a href= "{% url 'quiz_index' %}" class="login100-form-btn" >Get started!</a>
+					</div>
+
+				</form>
+			</div>
+
+		</div>
+	</div>
+
+{% endblock %}
