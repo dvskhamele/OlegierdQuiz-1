@@ -415,6 +415,7 @@ class SittingManager(models.Manager):
         question_set=sorted(question_set)
         random.shuffle(question_set)        
 
+        print("question_set",question_set)
         if len(question_set) == 0:
             raise ImpropervlyConfigured('Question set of the quiz is empty. '
                                        'Please configure questions properly')
@@ -568,6 +569,8 @@ class Sitting(models.Model):
 
         _, others = self.question_list.split(',', 1) 
         att_que = UQuestion.objects.get(quiz=self.quiz, user=self.user, questions__id=_)
+        print("_",_)
+        print("others",others)
         rep_question = att_que.date_of_next_rep
         date=datetime.date.today()
         date=str(date)
@@ -678,7 +681,8 @@ class Sitting(models.Model):
         if check_answer == False:
 
             add_answer_id.wrong_answer_date = datetime.date.today()
-            add_answer_id.today_wrong_answer =1            
+            add_answer_id.today_wrong_answer =1
+
 
         if check_answer == True:
             date=datetime.date.today()
@@ -689,20 +693,59 @@ class Sitting(models.Model):
             if wrong_answers < wrong_answer:
                 add_answer_id.today_wrong_answer = 0            
 
+            qusetion_rep=PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.user)
+            qusetion_rep=qusetion_rep.repeat_questions
+            print("qusetion_rep",qusetion_rep)
+
 
             add_answer_id.correct_answer = add_answer_id.correct_answer + 1
             if add_answer_id.correct_answer == 1:
-                add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=3)
+                if qusetion_rep == "25":
+                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=2)
 
-            elif add_answer_id.correct_answer == 2:
-                add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=7)
+                elif qusetion_rep == "50":
+                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=3)
 
-            elif add_answer_id.correct_answer == 3:
-                add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=21)
+                elif qusetion_rep == "75":
+                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=4)
 
-            elif add_answer_id.correct_answer >= 4:
-                add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=60)
+            if add_answer_id.correct_answer == 2:
+                if qusetion_rep == "25":
+                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=5)
 
+                elif qusetion_rep == "50":
+                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=7)
+
+                elif qusetion_rep == "75":
+                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=10)
+
+
+            if add_answer_id.correct_answer == 3:
+                if qusetion_rep == "25":
+                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=14)
+
+                elif qusetion_rep == "50":
+                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=21)
+
+                elif qusetion_rep == "75":
+                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=30)
+
+
+            if add_answer_id.correct_answer == 4:
+                if qusetion_rep == "25":
+                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=30)
+
+                elif qusetion_rep == "50":
+                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=60)
+
+                elif qusetion_rep == "75":
+                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=90)
+
+            if add_answer_id.correct_answer > 4:
+                add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=1025)
+
+
+            
 
         #attep 1 
 
@@ -722,7 +765,7 @@ class Sitting(models.Model):
             for question in questions:
                 question.user_answer = user_answers[str(question.id)]
 
-
+                print("question",question)
         return questions
 
     @property

@@ -140,20 +140,20 @@ class QuizUserProgressView(TemplateView):
             if correct_answer4 > 0:
                 correct_answers4=uquestions.filter(correct_answer=4,today_wrong_answer=1).count()
 
-            if correct_answer5 > 0:
-                correct_answers5=uquestions.filter(correct_answer=5,today_wrong_answer=1).count()
+            # if correct_answer5 > 0:
+            #     correct_answers5=uquestions.filter(correct_answer=5,today_wrong_answer=1).count()
 
             correct_answer2=correct_answer2-correct_answers2
             correct_answer3=correct_answer3-correct_answers3
             correct_answer4=correct_answer4-correct_answers4
-            correct_answer5=correct_answer5-correct_answers5       
+            # correct_answer5=correct_answer5-correct_answers5       
             try:
                 progres1=(50 * correct_answer1 /total_question)
                 progres2=(25 * correct_answer2 /total_question)
                 progres3=(12.5 * correct_answer3 /total_question)
                 progres4=(7.5 * correct_answer4 /total_question)
-                progres5=(5 * correct_answer5 /total_question)
-                progress_percentage=progres1+progres2+progres3+progres4+progres5
+                # progres5=(5 * correct_answer5 /total_question)
+                progress_percentage=progres1+progres2+progres3+progres4
                 progress_dict["quiz"] = quiz.title
                 progress_dict["quiz_report"] = str(round(min(progress_percentage,100),2))
 
@@ -204,7 +204,9 @@ class QuizMarkingDetail(QuizMarkerMixin, DetailView):
 
 class QuizTake(FormView):
     form_class = QuestionForm 
-    template_name = 'question.html'
+    #template_name = 'question.html'
+    template_name = 'previous_question.html'
+    previous_template_name = 'previous_question.html'
     result_template_name = 'result.html'
     single_complete_template_name = 'single_complete.html'
 
@@ -240,13 +242,16 @@ class QuizTake(FormView):
 
     def get_form(self, *args, **kwargs):
         if self.logged_in_user:
-            if self.sitting.get_first_question() != None:
+            try:
+                if self.sitting.get_first_question() != None:
+                    self.question = self.sitting.get_first_question() 
 
-                self.question = self.sitting.get_first_question() 
-
-                self.progress = self.sitting.progress()
-            else:
-                return redirect('/quiz/quiz_index/') 
+                    self.progress = self.sitting.progress()
+                else:
+                    return redirect('/quiz/quiz_index/') 
+            except Question.DoesNotExist:
+                self.sitting.delete()
+                return redirect('/quiz/quiz_index/')
         else:
             self.question = self.anon_next_question()
             self.progress = self.anon_sitting_progress()
@@ -260,7 +265,6 @@ class QuizTake(FormView):
 
     def get_form_kwargs(self):
         kwargs = super(QuizTake, self).get_form_kwargs()
-
         return dict(kwargs, question=self.question)
 
     def form_valid(self, form):
@@ -280,13 +284,138 @@ class QuizTake(FormView):
     def get_context_data(self, **kwargs):
         context = super(QuizTake, self).get_context_data(**kwargs)
         peronalized_max_questions = PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.request.user)
-        context['question'] = self.question
-        context['quiz'] = self.quiz
-        if hasattr(self, 'previous'):
-            context['previous'] = self.previous
-        if hasattr(self, 'progress'):
-            context['progress'] = self.progress
-        return context
+        modify = UQuestion.objects.get(quiz=self.quiz, user=self.request.user,questions=self.question)
+        new_questions=modify.attempt_question
+        second_attempt_day=modify.today_wrong_answer
+        if new_questions == 0:
+            context["question_info"] = "New Questions"
+
+        else:
+            if second_attempt_day == 1:
+                context["question_info"] = "corrections"
+
+            else:
+                context["question_info"] = "repetions"
+
+        context["remove_question"] = 0
+        #context["undo_question"] =0
+        
+        if "question_undo" in self.request.POST:
+            undo=self.request.POST['question_undo']
+            if undo == "1":
+                modify.correct_answer=modify.correct_answer-10
+                modify.date_of_next_rep=datetime.date.today() 
+                print("modify.date_of_next_rep",modify.date_of_next_rep)
+                modify.save()
+                context['question'] = self.question
+                context['quiz'] = self.quiz
+                if hasattr(self, 'previous'):
+                    context['previous'] = self.previous
+                if hasattr(self, 'progress'):
+                    context['progress'] = self.progress
+                context["remove_question"] = 1
+                if self.request.POST :
+                    value=self.request.POST['question_undo']
+                    if value != 0:
+                        context["to_display_question"] = 1
+                    elif self.previous:
+                        context["to_display_question"] = 0
+                    else:
+                        context["to_display_question"] = 0
+                return context 
+
+
+
+
+        forget_forever=modify.correct_answer
+        if forget_forever >=2:
+            context["remove_question"] = 1
+
+        # if "Rember" in self.request.POST:
+        #     rember = self.request.POST['Rember']
+        #     context["undo_question"] = 1
+        #     print("rember",rember)
+        #     if str(rember) == "1":
+        #         context["remove_question"] = 0
+        #         context["rember_que"] = 1
+        #         modify.correct_answer=modify.correct_answer+10
+        #         print("modify.correct_answer",modify.correct_answer)
+        #         modify.date_of_next_rep=datetime.date.today() + datetime.timedelta(days=1025)
+        #         modify.save()
+        #         context["undo_question"] = 1
+        #         context['question'] = self.question
+        #         context['quiz'] = self.quiz
+        #         print("context['quiz']",context['quiz'])
+        #         if hasattr(self, 'previous'):
+        #             context['previous'] = self.previous
+        #         if hasattr(self, 'progress'):
+        #             context['progress'] = self.progress
+        #         if 'check' in self.request.POST:
+        #                 value=self.request.POST['check']
+        #                 if value != 0:
+        #                     context["to_display_question"] = 1
+        #                 elif self.previous:
+        #                     context["to_display_question"] = 0
+        #                 else:
+        #                     context["to_display_question"] = 0
+        #         return context
+
+     
+
+
+
+
+        if "checked" in self.request.POST:
+            unchecked=self.request.POST['checked']
+            if unchecked == "1":
+                modify.correct_answer=modify.correct_answer+10
+                modify.date_of_next_rep=datetime.date.today() + datetime.timedelta(days=1025)
+                modify.save()
+                context["undo_question"] = 1
+                context["remove_question"] = 0
+                # context["rember_que"] = 0
+                
+                context['question'] = self.question
+                context['quiz'] = self.quiz
+                if hasattr(self, 'previous'):
+                    context['previous'] = self.previous
+                if hasattr(self, 'progress'):
+                    context['progress'] = self.progress
+                if self.request.POST :
+                    value=self.request.POST['checked']
+                    if value != 0:
+                        context["to_display_question"] = 1
+                    elif self.previous:
+                        context["to_display_question"] = 0
+                    else:
+                        context["to_display_question"] = 0
+                return context 
+
+        else:
+            context['question'] = self.question
+            context['quiz'] = self.quiz
+            
+        
+            if hasattr(self, 'previous'):
+                context['previous'] = self.previous
+                
+                #return render(se0lf.request, self.previous_template_name, context=context['previous'])
+            
+            if hasattr(self, 'progress'):
+                context['progress'] = self.progress
+                if self.request.POST :
+                    value=self.request.POST['hidde_questions']
+                    if value != 1:
+                        context["to_display_question"] = 0
+                    elif self.previous:
+                        context["to_display_question"] = 1
+                    else:
+                        context["to_display_question"] = 1
+            return context
+
+   
+
+
 
     def form_valid_user(self, form):
         progress, c = Progress.objects.get_or_create(user=self.request.user)
@@ -301,18 +430,20 @@ class QuizTake(FormView):
             progress.update_score(self.question, 0, 1)
 
         if self.quiz.answers_at_end is not True:
+
             self.previous = {'previous_answer': guess,
                              'previous_outcome': is_correct,
                              'previous_question': self.question,
                              'answers': self.question.get_answers(),
                              'question_type': {self.question
                                                .__class__.__name__: True}}
+            
         else:
             self.previous = {}
 
         self.sitting.add_user_answer(self.question, guess)
         self.sitting.remove_first_question()
-
+            
     def final_result_user(self):
         results = {
             'quiz': self.quiz,
