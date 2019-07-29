@@ -92,19 +92,23 @@
 
     {% endif %}
     
-    {% if rember_que == 1 %}
+    <!-- {% if rember_que == 0 %} -->
+  <!--  <form role="form" action="" method="POST">{% csrf_token %}
+   <br>
+      <button type="submit" class="login100-form-btn" value="1" name="check">Forget Forevers</button>
+    </form> -->
+   <!--  {% endif %} -->
+   {% if rember_que == 1 %}
      <form role="form" action="" method="POST">{% csrf_token %}
      <br>
-        <button type="submit" class="login100-form-btn" value=1 name="check">Forget Forever</button>
-      </form>
-    {% endif %}
-
-
-    {% if undo_question == 1 %}
-     <form role="form" action="" method="POST">{% csrf_token %}
-           <br>       
-          <button type="submit" class="login100-form-btn" value=1 name="question_undo" >Undo Forget</button>
+      <button type="submit" class="login100-form-btn" value=1 name="check">Forget Foreverss</button>
     </form>
+  {% endif %}
+  {% if undo_question == 1 %}
+   <form role="form" action="" method="POST">{% csrf_token %}
+         <br>       
+        <button type="submit" class="login100-form-btn" value=1 name="question_undo" >Undo Forget</button>
+  </form>
 
 
     {% endif %}
@@ -164,7 +168,7 @@ $(document).ready(function(){
                 </form>
                     <div class="modal-body"
                       style="padding: 11px;">
-
+ 
 
                 <label>
                   Are you sure that you remember this question 
@@ -172,12 +176,12 @@ $(document).ready(function(){
                   future repetitions?
                    </label>
                 <form role="form" action="" method="POST">{% csrf_token %}
-                  <div style="display: none;" class="checkbox" style="margin-bottom: 5px; ">
+                  <div  class="checkbox" style="margin-bottom: 5px; ">
                     <label>
                         <input type="checkbox" value=1 name="Rember" /> Don’t display this warning again
                     </label>
                   </div>
-                  <button type="submit" class="btn btn-success" value=1 name="checked" >Yes</button>
+                  <button type="submit" class="btn btn-success" value="1" name="checked" >Yes</button>
                   <button  class="btn btn-default" data-dismiss="modal" type="button"    >No</button>
                 </form>
                 

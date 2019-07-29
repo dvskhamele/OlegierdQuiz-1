@@ -203,6 +203,7 @@ class PersonalizedQuiz(models.Model):
     previous_question_list = models.CharField(max_length=1024,verbose_name=_("Previous Question List"),
         blank=True,null=True,
         validators=[validate_comma_separated_integer_list])
+    rember = models.CharField(max_length=24,default=0,verbose_name=_("rember"),blank=True,null=True)
 
 class Progress(models.Model):
     """
@@ -376,13 +377,13 @@ class SittingManager(models.Manager):
         q1=PersonalizedQuiz.objects.get(quiz=quiz, user=user)
         repeat_question=q1.repeat_questions
         max_question = q1.max_questions
+        q1.rember=0
+        q1.save()
         repeat_question=int(repeat_question)
         max_question=int(max_question)
 
-        new_question=round(repeat_question * max_question /100)
-        question_li=[]
-        question_lis=[]
-        new_questionss=[]
+        repeat_questions=round(repeat_question * max_question /100)
+        question_repeate=[]
         check_question=[]
         for q in UQuestion.objects.filter(quiz=quiz, user=user):
             question_lists = q.questions.id
@@ -392,30 +393,35 @@ class SittingManager(models.Manager):
             date=str(date)
             if question_rep_date == None:
                 question_rep_date = date
-            attemp_questions =q.attempt_question
-            
             date=datetime.datetime.strptime(date, '%Y-%m-%d')
             question_rep_date=datetime.datetime.strptime(question_rep_date, '%Y-%m-%d')
-            if question_correct == 0 :
-                question_lis.append(question_lists)
-            if attemp_questions == 0:
-                new_questionss.append(question_lists)
-            else:
-                if question_correct > 0 :
-                        check_question.append(question_lists)
-                        ("question_rep_date",question_rep_date, date)
-                        if question_rep_date <= date:
-                            if not question_lists in  question_li:#date_of_next_rep      
-                                question_li.append(question_lists)
-
+            if question_correct > 0 :
+                check_question.append(question_lists)
+                if question_rep_date <= date:
+                    if not question_lists in  question_repeate:
+                        question_repeate.append(question_lists)
+        
         question_set=(list(set(question_set) - set(check_question)))
-        new_questionsss=new_questionss[0:new_question] 
-        question_set=new_questionsss+question_li+question_lis+question_set
-        question_set=set(question_set)
-        question_set=sorted(question_set)
-        random.shuffle(question_set)        
+        random.shuffle(question_set)
+        new_questions=max_question-repeat_questions
+        repeat_question=repeat_questions
+        question_sets=question_set[0:new_questions]
+        random.shuffle(question_sets)
+        if len(question_repeate) >0: #repeat_question:
+            if len(question_repeate) >=repeat_question:
+                question_set=question_repeate[0:repeat_question]
+                random.shuffle(question_set)
+                question_set=question_set+question_sets
+            else:
+                que_rep=len(question_repeate)
+                question_sets=question_set[0:new_questions]
+                new_questions=new_questions
+                question_set=question_set[new_questions:max_question]
+                question_set=question_repeate+question_set
+        else:
+            question_set=question_set
 
-        print("question_set",question_set)
+
         if len(question_set) == 0:
             raise ImpropervlyConfigured('Question set of the quiz is empty. '
                                        'Please configure questions properly')
@@ -569,11 +575,9 @@ class Sitting(models.Model):
 
         _, others = self.question_list.split(',', 1) 
         att_que = UQuestion.objects.get(quiz=self.quiz, user=self.user, questions__id=_)
-        print("_",_)
-        print("others",others)
         rep_question = att_que.date_of_next_rep
         date=datetime.date.today()
-        date=str(date)
+        date=str(date) 
         date=datetime.datetime.strptime(date, '%Y-%m-%d')
         question_rep_date=datetime.datetime.strptime(rep_question, '%Y-%m-%d')
         if question_rep_date == date:
@@ -695,7 +699,6 @@ class Sitting(models.Model):
 
             qusetion_rep=PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.user)
             qusetion_rep=qusetion_rep.repeat_questions
-            print("qusetion_rep",qusetion_rep)
 
 
             add_answer_id.correct_answer = add_answer_id.correct_answer + 1
@@ -765,7 +768,6 @@ class Sitting(models.Model):
             for question in questions:
                 question.user_answer = user_answers[str(question.id)]
 
-                print("question",question)
         return questions
 
     @property

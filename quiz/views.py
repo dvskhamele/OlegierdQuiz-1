@@ -286,12 +286,16 @@ class QuizTake(FormView):
         peronalized_max_questions = PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.request.user)
         modify = UQuestion.objects.get(quiz=self.quiz, user=self.request.user,questions=self.question)
         new_questions=modify.attempt_question
-        second_attempt_day=modify.today_wrong_answer
+        second_attempt_day=modify.question_taken_date
         if new_questions == 0:
             context["question_info"] = "New Questions"
 
         else:
-            if second_attempt_day == 1:
+            date=datetime.date.today()
+            date=str(date) 
+            date=datetime.datetime.strptime(date, '%Y-%m-%d')
+            question_att_date=datetime.datetime.strptime(second_attempt_day, '%Y-%m-%d')
+            if question_att_date == date:
                 context["question_info"] = "corrections"
 
             else:
@@ -305,7 +309,6 @@ class QuizTake(FormView):
             if undo == "1":
                 modify.correct_answer=modify.correct_answer-10
                 modify.date_of_next_rep=datetime.date.today() 
-                print("modify.date_of_next_rep",modify.date_of_next_rep)
                 modify.save()
                 context['question'] = self.question
                 context['quiz'] = self.quiz
@@ -313,7 +316,10 @@ class QuizTake(FormView):
                     context['previous'] = self.previous
                 if hasattr(self, 'progress'):
                     context['progress'] = self.progress
-                context["remove_question"] = 1
+                if peronalized_max_questions.rember == "1":
+                    context["rember_que"] = 1
+                else:
+                    context["remove_question"] = 1
                 if self.request.POST :
                     value=self.request.POST['question_undo']
                     if value != 0:
@@ -331,87 +337,93 @@ class QuizTake(FormView):
         if forget_forever >=2:
             context["remove_question"] = 1
 
-        # if "Rember" in self.request.POST:
-        #     rember = self.request.POST['Rember']
-        #     context["undo_question"] = 1
-        #     print("rember",rember)
-        #     if str(rember) == "1":
-        #         context["remove_question"] = 0
-        #         context["rember_que"] = 1
-        #         modify.correct_answer=modify.correct_answer+10
-        #         print("modify.correct_answer",modify.correct_answer)
-        #         modify.date_of_next_rep=datetime.date.today() + datetime.timedelta(days=1025)
-        #         modify.save()
-        #         context["undo_question"] = 1
-        #         context['question'] = self.question
-        #         context['quiz'] = self.quiz
-        #         print("context['quiz']",context['quiz'])
-        #         if hasattr(self, 'previous'):
-        #             context['previous'] = self.previous
-        #         if hasattr(self, 'progress'):
-        #             context['progress'] = self.progress
-        #         if 'check' in self.request.POST:
-        #                 value=self.request.POST['check']
-        #                 if value != 0:
-        #                     context["to_display_question"] = 1
-        #                 elif self.previous:
-        #                     context["to_display_question"] = 0
-        #                 else:
-        #                     context["to_display_question"] = 0
-        #         return context
-
-     
-
+        if peronalized_max_questions.rember == "1":
+            context["remove_question"] = 0
+            if forget_forever >=2:
+                context["rember_que"] = 1
+            if peronalized_max_questions.rember == "1":
+                if "check" in self.request.POST:
+                    checke=self.request.POST['check']
+                    if str(checke) == "1":
+                        modify.correct_answer=modify.correct_answer+10
+                        modify.date_of_next_rep=datetime.date.today() + datetime.timedelta(days=1025)
+                        modify.save()
+                        context["undo_question"] = 1
+                        context["rember_que"] = 0
+                        context['question'] = self.question
+                        context['quiz'] = self.quiz
+                        if hasattr(self, 'previous'):
+                            context['previous'] = self.previous
+                        if hasattr(self, 'progress'):
+                            context['progress'] = self.progress
+                        if 'check' in self.request.POST:
+                                value=self.request.POST['check']
+                                if value != 0:
+                                    context["to_display_question"] = 1
+                                elif self.previous:
+                                    context["to_display_question"] = 0
+                                else:
+                                    context["to_display_question"] = 0
+                        return context
+    
 
 
-
-        if "checked" in self.request.POST:
-            unchecked=self.request.POST['checked']
-            if unchecked == "1":
-                modify.correct_answer=modify.correct_answer+10
-                modify.date_of_next_rep=datetime.date.today() + datetime.timedelta(days=1025)
-                modify.save()
-                context["undo_question"] = 1
-                context["remove_question"] = 0
-                # context["rember_que"] = 0
+        if peronalized_max_questions.rember == "0":
+            if "checked" in self.request.POST:
+                unchecked=self.request.POST['checked']
                 
-                context['question'] = self.question
-                context['quiz'] = self.quiz
-                if hasattr(self, 'previous'):
-                    context['previous'] = self.previous
-                if hasattr(self, 'progress'):
-                    context['progress'] = self.progress
-                if self.request.POST :
-                    value=self.request.POST['checked']
-                    if value != 0:
-                        context["to_display_question"] = 1
-                    elif self.previous:
-                        context["to_display_question"] = 0
-                    else:
-                        context["to_display_question"] = 0
-                return context 
+                if unchecked == "1":
+                    modify.correct_answer=modify.correct_answer+10
+                    modify.date_of_next_rep=datetime.date.today() + datetime.timedelta(days=1025)
+                    modify.save()
+                    context["undo_question"] = 1
+                    context["remove_question"] = 0
+                    
+                    context['question'] = self.question
+                    context['quiz'] = self.quiz
+                    if hasattr(self, 'previous'):
+                        context['previous'] = self.previous
+                    if hasattr(self, 'progress'):
+                        context['progress'] = self.progress
+                    if self.request.POST :
+                        value=self.request.POST['checked']
+                        if value != 0:
+                            context["to_display_question"] = 1
+                        elif self.previous:
+                            context["to_display_question"] = 0
+                        else:
+                            context["to_display_question"] = 0
 
-        else:
-            context['question'] = self.question
-            context['quiz'] = self.quiz
+                    if "Rember" in self.request.POST:
+                        rember = self.request.POST['Rember']
+                        peronalized_max_questions.rember=rember
+                        context["undo_question"] = 1
+                        # context["remove_question"] = 0
+                        peronalized_max_questions.save()
+                    return context 
+
             
+        context['question'] = self.question
+        context['quiz'] = self.quiz
         
-            if hasattr(self, 'previous'):
-                context['previous'] = self.previous
-                
-                #return render(se0lf.request, self.previous_template_name, context=context['previous'])
+    
+        if hasattr(self, 'previous'):
+            context['previous'] = self.previous
             
-            if hasattr(self, 'progress'):
-                context['progress'] = self.progress
-                if self.request.POST :
-                    value=self.request.POST['hidde_questions']
-                    if value != 1:
-                        context["to_display_question"] = 0
-                    elif self.previous:
-                        context["to_display_question"] = 1
-                    else:
-                        context["to_display_question"] = 1
-            return context
+            #return render(se0lf.request, self.previous_template_name, context=context['previous'])
+        
+        if hasattr(self, 'progress'):
+            context['progress'] = self.progress
+            if "hidde_questions" in self.request.POST:
+            #if self.request.POST :
+                value=self.request.POST['hidde_questions']
+                if value != 1:
+                    context["to_display_question"] = 0
+                elif self.previous:
+                    context["to_display_question"] = 1
+                else:
+                    context["to_display_question"] = 1
+        return context
 
    
 
