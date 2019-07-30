@@ -56,15 +56,15 @@
     {% if progress %}
     <div style="float: right;">
     {% trans "Question" %} 
-    {{ progress.0|add:1 }}    
-    {% if progress.0|add:1 <= progress.1 %} 
+    <!-- {{ progress.0|add:1 }}  -->   
+    <!-- {% if progress.0|add:1 <= progress.1 %}  -->
 
-     {% trans "of" %} {{ progress.1 }} |  
+     {{ new_questi }}  of  {{new_question}} |  
 
-    {% endif %}
-{{ question_info }}
+    <!-- {% endif %} -->
+{{ corection }} {{ question_info }}
     </div>
-    {% endif %}
+    <!-- {% endif %} -->
     <br>
     <br>
     <span class="login100-form-title p-t-1 p-b-45">{{ question.content }} </span>

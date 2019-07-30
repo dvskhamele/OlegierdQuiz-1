@@ -281,6 +281,7 @@ class QuizTake(FormView):
 
         return super(QuizTake, self).get(self, self.request)
 
+    
     def get_context_data(self, **kwargs):
         context = super(QuizTake, self).get_context_data(**kwargs)
         peronalized_max_questions = PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.request.user)
@@ -288,18 +289,29 @@ class QuizTake(FormView):
         new_questions=modify.attempt_question
         second_attempt_day=modify.question_taken_date
         if new_questions == 0:
+            new_question=peronalized_max_questions.total_new_question
+            new_questi=peronalized_max_questions.question_attemp
+            context["new_questi"] = new_questi
             context["question_info"] = "New Questions"
+            context["new_question"] = new_question
 
+             
         else:
             date=datetime.date.today()
             date=str(date) 
             date=datetime.datetime.strptime(date, '%Y-%m-%d')
             question_att_date=datetime.datetime.strptime(second_attempt_day, '%Y-%m-%d')
             if question_att_date == date:
+                corection=peronalized_max_questions.correction
+                context["corection"] = corection
                 context["question_info"] = "corrections"
 
             else:
+                new_questi=peronalized_max_questions.question_repe+1
+                context["new_questi"] = new_questi
+                repeat_question=peronalized_max_questions.total_repeat
                 context["question_info"] = "repetions"
+                context["new_question"] = repeat_question
 
         context["remove_question"] = 0
         #context["undo_question"] =0
@@ -402,12 +414,14 @@ class QuizTake(FormView):
                         peronalized_max_questions.save()
                     return context 
 
-            
         context['question'] = self.question
         context['quiz'] = self.quiz
         
     
         if hasattr(self, 'previous'):
+            questions=PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.request.user)
+            questions.question_repe=questions.question_repe+1
+            questions.save()
             context['previous'] = self.previous
             
             #return render(se0lf.request, self.previous_template_name, context=context['previous'])

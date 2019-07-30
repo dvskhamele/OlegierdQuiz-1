@@ -17,9 +17,13 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings 
 from django.conf.urls.static import static
-urlpatterns = [
-    path('', include('fileloader.urls')), #path('fileloader/', include('fileloader.urls')),
-    path('admin/', admin.site.urls),
-    path('accounts/', include('django.contrib.auth.urls')),
-    path('quiz/', include('quiz.urls')),
-]+static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
+from django.conf.urls import include, url
+if settings.DEBUG:
+    import debug_toolbar
+    urlpatterns = [
+        url(r'^__debug__/', include(debug_toolbar.urls)),
+        path('', include('fileloader.urls')), #path('fileloader/', include('fileloader.urls')),
+        path('admin/', admin.site.urls),
+        path('accounts/', include('django.contrib.auth.urls')),
+        path('quiz/', include('quiz.urls')),
+    ]+static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)

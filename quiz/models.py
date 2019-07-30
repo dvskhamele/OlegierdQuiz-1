@@ -204,7 +204,11 @@ class PersonalizedQuiz(models.Model):
         blank=True,null=True,
         validators=[validate_comma_separated_integer_list])
     rember = models.CharField(max_length=24,default=0,verbose_name=_("rember"),blank=True,null=True)
-
+    total_new_question = models.CharField(max_length=24,default=0,verbose_name=_("total_new_question"),blank=True,null=True)
+    total_repeat = models.CharField(max_length=24,default=0,verbose_name=_("total_repeat"),blank=True,null=True)
+    question_attemp = models.IntegerField(max_length=24,default=0,verbose_name=_("question_attemp"),blank=True,null=True)
+    question_repe = models.IntegerField(max_length=24,default=0,verbose_name=_("question_repe"),blank=True,null=True)
+    correction = models.IntegerField(max_length=24,default=0,verbose_name=_("correction"),blank=True,null=True)
 class Progress(models.Model):
     """
     Progress is used to track an individual signed in users score on different
@@ -363,7 +367,6 @@ class SittingManager(models.Manager):
         else:
             random_previous_questions = previous_question_list
         questions_to_exclude = list(set(previous_question_list) - set(random_previous_questions))
-
         if quiz.random_order is True:
             question_set = quiz.question_set.exclude(id__in=questions_to_exclude) \
                                             .select_subclasses() \
@@ -378,6 +381,8 @@ class SittingManager(models.Manager):
         repeat_question=q1.repeat_questions
         max_question = q1.max_questions
         q1.rember=0
+        q1.question_attemp=0
+        q1.question_repe=0
         q1.save()
         repeat_question=int(repeat_question)
         max_question=int(max_question)
@@ -406,19 +411,31 @@ class SittingManager(models.Manager):
         new_questions=max_question-repeat_questions
         repeat_question=repeat_questions
         question_sets=question_set[0:new_questions]
+
+
         random.shuffle(question_sets)
         if len(question_repeate) >0: #repeat_question:
             if len(question_repeate) >=repeat_question:
+                q1.total_new_question=new_questions
+                q1.total_repeat=repeat_questions
+                q1.save()
                 question_set=question_repeate[0:repeat_question]
                 random.shuffle(question_set)
                 question_set=question_set+question_sets
             else:
                 que_rep=len(question_repeate)
+                total_max_question=max_question-que_rep
+                q1.total_new_question=total_max_question
+                q1.total_repeat=que_rep
+                q1.save()
                 question_sets=question_set[0:new_questions]
                 new_questions=new_questions
                 question_set=question_set[new_questions:max_question]
                 question_set=question_repeate+question_set
         else:
+            q1.total_new_question=max_question
+            q1.total_repeat=0
+            q1.save()
             question_set=question_set
 
 
@@ -529,7 +546,6 @@ class Sitting(models.Model):
         first, _ = self.question_list.split(',', 1)
         
         question_id = int(first)
-
         questions = Question.objects.filter(quiz=self.quiz)
         questions_count = questions.count()
         user_questions=UQuestion.objects.filter(quiz=self.quiz, user=self.user)
@@ -543,6 +559,9 @@ class Sitting(models.Model):
                 today = datetime.date.today()
                 yesterday = today - datetime.timedelta(days = 3)
                 uq=UQuestion.objects.create(quiz=self.quiz, user=self.user,questions=q,attempt_question=0,correct_answer=0,date_of_next_rep=datetime.date.today(),question_taken_date=datetime.date.today(),wrong_answer_date=yesterday,today_wrong_answer=0)
+                pre_qu=PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.user)
+                pre_qu.question_attemp=pre_qu.question_attemp+1
+                pre_qu.save()
         return Question.objects.get_subclass(id=question_id)
 
         
@@ -566,6 +585,7 @@ class Sitting(models.Model):
             previous_question_list = []
             previous_question_list.append(que_id)
             pre_q.previous_question_list = previous_question_list
+            
         else:
             previous_question_list = pre_q.previous_question_list
             previous_question_list = previous_question_list.replace('[',"").replace("'","").replace(']',"").split(', ')
@@ -581,20 +601,32 @@ class Sitting(models.Model):
         date=datetime.datetime.strptime(date, '%Y-%m-%d')
         question_rep_date=datetime.datetime.strptime(rep_question, '%Y-%m-%d')
         if question_rep_date == date:
+            # w1=[]
             if len(others) == 0:
                 others=_+","
             elif others[len(others)-1] == ",":
                 others=others+ _ +","
             self.question_list = others
+            corrections=self.question_list.count(",")
+            pre_q.correction=corrections
             self.save()
+            pre_q.save()
             que_ids = self.question_list.split(",")[0]
+            
+
         else:
             self.question_list = others
             self.save()   
 
         
-
+            corrections=self.question_list.count(",")
+            pre_q.correction=corrections
+            pre_q.save()
             que_ids = self.question_list.split(",")[0]
+
+
+
+
 
     def add_to_score(self, points):
         self.current_score += int(points)
