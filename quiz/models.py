@@ -384,10 +384,10 @@ class SittingManager(models.Manager):
         q1.question_attemp=0
         q1.question_repe=0
         q1.save()
-        repeat_question=int(repeat_question)
+        #repeat_question=int(repeat_question)
         max_question=int(max_question)
 
-        repeat_questions=round(repeat_question * max_question /100)
+        #repeat_questions=round(repeat_question * max_question /100)
         question_repeate=[]
         check_question=[]
         for q in UQuestion.objects.filter(quiz=quiz, user=user):
@@ -408,35 +408,23 @@ class SittingManager(models.Manager):
         
         question_set=(list(set(question_set) - set(check_question)))
         random.shuffle(question_set)
-        new_questions=max_question-repeat_questions
-        repeat_question=repeat_questions
+        new_questions=max_question
+        #repeat_question=repeat_questions
         question_sets=question_set[0:new_questions]
-
+        question_repeat=len(question_repeate)
 
         random.shuffle(question_sets)
-        if len(question_repeate) >0: #repeat_question:
-            if len(question_repeate) >=repeat_question:
-                q1.total_new_question=new_questions
-                q1.total_repeat=repeat_questions
-                q1.save()
-                question_set=question_repeate[0:repeat_question]
-                random.shuffle(question_set)
-                question_set=question_set+question_sets
-            else:
-                que_rep=len(question_repeate)
-                total_max_question=max_question-que_rep
-                q1.total_new_question=total_max_question
-                q1.total_repeat=que_rep
-                q1.save()
-                question_sets=question_set[0:new_questions]
-                new_questions=new_questions
-                question_set=question_set[new_questions:max_question]
-                question_set=question_repeate+question_set
+        if len(question_repeate) > 0: #repeat_question:
+            q1.total_new_question=new_questions
+            q1.total_repeat=question_repeat
+            q1.save()
+            question_set=question_repeate+question_sets
+            
         else:
             q1.total_new_question=max_question
             q1.total_repeat=0
             q1.save()
-            question_set=question_set
+            question_set=question_sets
 
 
         if len(question_set) == 0:
@@ -446,8 +434,7 @@ class SittingManager(models.Manager):
             
 
         if peronalized_max_questions < len(question_set):
-
-            question_set = question_set[:peronalized_max_questions]
+            question_set = question_set
         questions = ",".join(map(str, question_set)) + ","
         new_sitting = self.create(user=user,
                                   quiz=quiz,

@@ -9,6 +9,10 @@ try:
 except ImportError:
     from django.urls import re_path as url
 
+#from django.core.urlresolvers import reverse_lazy
+from django.urls import reverse_lazy
+from django.views.generic import RedirectView
+
 from .views import QuizListView, CategoriesListView, \
     ViewQuizListByCategory, QuizUserProgressView, QuizMarkingList, \
     QuizMarkingDetail, QuizDetailView, QuizTake, quiz1,quizrep  
@@ -36,7 +40,7 @@ urlpatterns = [
         name='quiz_marking'),
 
     url(r'^marking/(?P<pk>[\d.]+)/$',
-        view=QuizMarkingDetail.as_view(), 
+        view=QuizMarkingDetail.as_view(),  
         name='quiz_marking_detail'),
 
     #  passes variable 'quiz_name' to quiz_take view
@@ -50,5 +54,7 @@ urlpatterns = [
 
     url(r'^(?P<slug>[\w-]+)/quiz_select/$', quiz1.as_view() , name='quiz_select'),
     url(r'^(?P<slug>[\w-]+)/quiz_question_repeat/$', quizrep.as_view() , name='quiz_question_repeat'),
+    
+    url(r'$', RedirectView.as_view(url=reverse_lazy('quiz_index'), permanent=False)),
 
 ]+static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)

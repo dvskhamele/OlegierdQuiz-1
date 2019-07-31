@@ -92,16 +92,10 @@
 
     {% endif %}
     
-    <!-- {% if rember_que == 0 %} -->
-  <!--  <form role="form" action="" method="POST">{% csrf_token %}
-   <br>
-      <button type="submit" class="login100-form-btn" value="1" name="check">Forget Forevers</button>
-    </form> -->
-   <!--  {% endif %} -->
    {% if rember_que == 1 %}
      <form role="form" action="" method="POST">{% csrf_token %}
      <br>
-      <button type="submit" class="login100-form-btn" value=1 name="check">Forget Foreverss</button>
+      <button type="submit" class="login100-form-btn" value=1 name="check">Forget Forever</button>
     </form>
   {% endif %}
   {% if undo_question == 1 %}
@@ -118,9 +112,7 @@
 
 {% endif %}
     <hr>
-    <!-- {% if remove_question == 1 %} -->
-<!--     <a href= "" class="login100-form-btn" > Remove Questions</a> -->
-    <!-- {% endif %} -->
+    
     <a href= "{% url 'quiz_index' %}" class="login100-form-btn" >Return to the list of e-learnings</a>
     <br>
     <a href= "{% url 'index' %}" class="login100-form-btn" >Return to home</a>

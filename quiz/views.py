@@ -107,7 +107,7 @@ class QuizUserProgressView(TemplateView):
         context['cat_scores'] = progress.list_all_cat_scores
         context['exams'] = progress.show_exams()
         
-
+    
         question_ids=[]
         question_corrects=[]
         attemp_questions=[]
@@ -121,10 +121,13 @@ class QuizUserProgressView(TemplateView):
             uquestions = UQuestion.objects.filter(user=self.request.user,quiz=quiz)
             wrong_answer=uquestions.filter(today_wrong_answer=1).count()
             correct_answer1=uquestions.filter(correct_answer=1).count()
-            correct_answer2=uquestions.filter(correct_answer=2).count()
-            correct_answer3=uquestions.filter(correct_answer=3).count()
-            correct_answer4=uquestions.filter(correct_answer=4).count()
-            correct_answer5=uquestions.filter(correct_answer=5).count()
+            correct_answers2=uquestions.filter(correct_answer=2)
+            correct_answer2 = correct_answers2.count()
+            correct_answers3=uquestions.filter(correct_answer=3)
+            correct_answer3 = correct_answers3.count()
+            correct_answers4=uquestions.filter(correct_answer=4)
+            correct_answer4 = correct_answers4.count()
+            correct_answer5=uquestions.filter(correct_answer=5)
             correct_answer1=abs(correct_answer1-wrong_answer)
             
             correct_answers2=0
@@ -132,33 +135,30 @@ class QuizUserProgressView(TemplateView):
             correct_answers4=0
             correct_answers5=0
             if correct_answer2 > 0:
-                correct_answers2=uquestions.filter(correct_answer=2,today_wrong_answer=1).count()
+                correct_answers2=correct_answers2.filter(today_wrong_answer=1).count()
 
             if correct_answer3 > 0:
-                correct_answers3=uquestions.filter(correct_answer=3,today_wrong_answer=1).count()
+                correct_answers3=correct_answers3.filter(today_wrong_answer=1).count()
 
             if correct_answer4 > 0:
-                correct_answers4=uquestions.filter(correct_answer=4,today_wrong_answer=1).count()
-
-            # if correct_answer5 > 0:
-            #     correct_answers5=uquestions.filter(correct_answer=5,today_wrong_answer=1).count()
+                correct_answers4=correct_answers4.filter(today_wrong_answer=1).count()
 
             correct_answer2=correct_answer2-correct_answers2
             correct_answer3=correct_answer3-correct_answers3
             correct_answer4=correct_answer4-correct_answers4
-            # correct_answer5=correct_answer5-correct_answers5       
+
             try:
                 progres1=(50 * correct_answer1 /total_question)
                 progres2=(25 * correct_answer2 /total_question)
                 progres3=(12.5 * correct_answer3 /total_question)
                 progres4=(7.5 * correct_answer4 /total_question)
-                # progres5=(5 * correct_answer5 /total_question)
+
                 progress_percentage=progres1+progres2+progres3+progres4
                 progress_dict["quiz"] = quiz.title
                 progress_dict["quiz_report"] = str(round(min(progress_percentage,100),2))
 
                 progress_report.append(progress_dict)
-            except PersonalizedQuiz.DoesNotExist:
+            except:
                 return render(self.request, 'quiz/firstattemptprogress.html')
 
         context={'progress_report':progress_report}
@@ -230,7 +230,6 @@ class QuizTake(FormView):
                 return redirect('/quiz/quiz_index/')
 
             except NameError:
-                #return redirect(request, 'quiz/complete_attempt_questions.html')
                 return render(self.request, 'quiz/complete_attempt_questions.html')
         else:
             self.sitting = self.anon_load_sitting()

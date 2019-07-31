@@ -18,6 +18,8 @@ from django.urls import path, include
 from django.conf import settings 
 from django.conf.urls.static import static
 from django.conf.urls import include, url
+
+
 if settings.DEBUG:
     import debug_toolbar
     urlpatterns = [
@@ -27,3 +29,20 @@ if settings.DEBUG:
         path('accounts/', include('django.contrib.auth.urls')),
         path('quiz/', include('quiz.urls')),
     ]+static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

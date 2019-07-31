@@ -33,27 +33,27 @@
           {% if max_score %}
 
           <div>
-        	<h2>{% trans "Exam results" %}</h2>
+        	<h2>{% trans "Exam results" %}</h2> 
         	<p>
         	  <small class="muted">{% trans "Exam title" %}: </small>
         	  <strong>{{ quiz.title }}</strong></p>
 
-        	<p class="black">
-        	  {% trans "You answered" %} {{ score }} {% trans "questions correctly out of" %} {{ max_score }}, {% trans "giving you" %} {{ percent }} {% trans "percent correct" %}
+        	<p class="black"><font color="black">
+        	  {% trans "You answered" %} {{ score }} {% trans "questions correctly out of" %} {{ max_score }}, {% trans "giving you" %} {{ percent }} {% trans "percent correct" %} </font>
         	</p>
 
         	{% if quiz.pass_mark %}
         	<hr>
-                <p class="black">{{ sitting.result_message }}</p>
+                <p class="black"><font color="black"><strong>{{ sitting.result_message }}</strong></font></p>
         	<hr>
 
         	{% endif %}
 
-        	<p>{% trans "Review the questions below and try the exam again in the future"%}.</p>
+        	<p><font color="black">{% trans "Review the questions below and try the exam again in the future"%}.</font></p>
 
         	{% if user.is_authenticated %}
 
-        	  <p>{% trans "The result of this exam will be stored in your progress section so you can review and monitor your progression" %}.</p>
+        	  <p><font color="black">{% trans "The result of this exam will be stored in your progress section so you can review and monitor your progression" %}.</font></p>
 
         	{% endif %}
           </div>
