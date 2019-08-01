@@ -15,6 +15,20 @@ from django.http import HttpResponse,  Http404
 from multichoice.models import MCQuestion,Answer
 from django.shortcuts import redirect
 
+class TestingView(TemplateView):
+    def get(self, request, quiz_slug, *args, **kwargs):
+        uquestions = UQuestion.objects.filter(user=self.request.user,quiz__url=quiz_slug)
+        today = datetime.date.today()
+        yesterday = today - datetime.timedelta(days = 3)
+        for uquestion in uquestions:
+            uquestion.wrong_answer_date=yesterday
+            uquestion.date_of_next_rep=datetime.date.today()
+            uquestion.question_taken_date=yesterday
+            uquestion.save()
+        return render(request, 'progress.html')            
+
+    
+
  
 class QuizMarkerMixin(object):
     @method_decorator(login_required)
@@ -107,7 +121,7 @@ class QuizUserProgressView(TemplateView):
         context['cat_scores'] = progress.list_all_cat_scores
         context['exams'] = progress.show_exams()
         
-    
+
         question_ids=[]
         question_corrects=[]
         attemp_questions=[]
@@ -121,13 +135,10 @@ class QuizUserProgressView(TemplateView):
             uquestions = UQuestion.objects.filter(user=self.request.user,quiz=quiz)
             wrong_answer=uquestions.filter(today_wrong_answer=1).count()
             correct_answer1=uquestions.filter(correct_answer=1).count()
-            correct_answers2=uquestions.filter(correct_answer=2)
-            correct_answer2 = correct_answers2.count()
-            correct_answers3=uquestions.filter(correct_answer=3)
-            correct_answer3 = correct_answers3.count()
-            correct_answers4=uquestions.filter(correct_answer=4)
-            correct_answer4 = correct_answers4.count()
-            correct_answer5=uquestions.filter(correct_answer=5)
+            correct_answer2=uquestions.filter(correct_answer=2).count()
+            correct_answer3=uquestions.filter(correct_answer=3).count()
+            correct_answer4=uquestions.filter(correct_answer=4).count()
+            correct_answer5=uquestions.filter(correct_answer=5).count()
             correct_answer1=abs(correct_answer1-wrong_answer)
             
             correct_answers2=0
@@ -135,35 +146,37 @@ class QuizUserProgressView(TemplateView):
             correct_answers4=0
             correct_answers5=0
             if correct_answer2 > 0:
-                correct_answers2=correct_answers2.filter(today_wrong_answer=1).count()
+                correct_answers2=uquestions.filter(correct_answer=2,today_wrong_answer=1).count()
 
             if correct_answer3 > 0:
-                correct_answers3=correct_answers3.filter(today_wrong_answer=1).count()
+                correct_answers3=uquestions.filter(correct_answer=3,today_wrong_answer=1).count()
 
             if correct_answer4 > 0:
-                correct_answers4=correct_answers4.filter(today_wrong_answer=1).count()
+                correct_answers4=uquestions.filter(correct_answer=4,today_wrong_answer=1).count()
+
+            # if correct_answer5 > 0:
+            #     correct_answers5=uquestions.filter(correct_answer=5,today_wrong_answer=1).count()
 
             correct_answer2=correct_answer2-correct_answers2
             correct_answer3=correct_answer3-correct_answers3
             correct_answer4=correct_answer4-correct_answers4
-
+            # correct_answer5=correct_answer5-correct_answers5       
             try:
                 progres1=(50 * correct_answer1 /total_question)
                 progres2=(25 * correct_answer2 /total_question)
                 progres3=(12.5 * correct_answer3 /total_question)
                 progres4=(7.5 * correct_answer4 /total_question)
-
+                # progres5=(5 * correct_answer5 /total_question)
                 progress_percentage=progres1+progres2+progres3+progres4
                 progress_dict["quiz"] = quiz.title
                 progress_dict["quiz_report"] = str(round(min(progress_percentage,100),2))
 
                 progress_report.append(progress_dict)
-            except:
+            except PersonalizedQuiz.DoesNotExist:
                 return render(self.request, 'quiz/firstattemptprogress.html')
 
         context={'progress_report':progress_report}
-        return render(request, self.template_name, context)
-        
+        return render(request, self.template_name, context)        
 class QuizMarkingList(QuizMarkerMixin, SittingFilterTitleMixin, ListView):
     model = Sitting
 
@@ -229,7 +242,15 @@ class QuizTake(FormView):
             except PersonalizedQuiz.DoesNotExist:
                 return redirect('/quiz/quiz_index/')
 
+            # try:
+                # date=datetime.date.today()
+                # date=str(date) 
+                # date=datetime.datetime.strptime(date, '%Y-%m-%d')
+                # question_att_date=datetime.datetime.strptime(second_attempt_day, '%Y-%m-%d')
+                # if question_att_date == date:
+                #     corection=peronalized_max_questions.correction
             except NameError:
+                #return redirect(request, 'quiz/complete_attempt_questions.html')
                 return render(self.request, 'quiz/complete_attempt_questions.html')
         else:
             self.sitting = self.anon_load_sitting()
@@ -303,7 +324,7 @@ class QuizTake(FormView):
             if question_att_date == date:
                 corection=peronalized_max_questions.correction
                 context["corection"] = corection
-                context["question_info"] = "corrections"
+                context["question_info"] = "Corrections"
 
             else:
                 new_questi=peronalized_max_questions.question_repe+1
@@ -680,5 +701,16 @@ class quizrep(TemplateView):
         if pq.repeat_questions == "75":
             repeat_questions="High"
         return render(request, 'quiz/quiz_repeat_questions.html', {'quiz':quiz,'repeat_questions':repeat_questions}) 
+
+
+
+
+
+
+
+
+
+
+
 
 

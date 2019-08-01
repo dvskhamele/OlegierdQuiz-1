@@ -400,7 +400,7 @@ class SittingManager(models.Manager):
                 question_rep_date = date
             date=datetime.datetime.strptime(date, '%Y-%m-%d')
             question_rep_date=datetime.datetime.strptime(question_rep_date, '%Y-%m-%d')
-            if question_correct > 0 :
+            if question_correct > 0 and question_correct < 5:
                 check_question.append(question_lists)
                 if question_rep_date <= date:
                     if not question_lists in  question_repeate:
@@ -414,13 +414,24 @@ class SittingManager(models.Manager):
         question_repeat=len(question_repeate)
 
         random.shuffle(question_sets)
-        if len(question_repeate) > 0: #repeat_question:
+
+        if len(question_set) < new_questions:
+            remaing_questions=question_set
+            print("test")
+            q1.total_new_question=len(remaing_questions)
+            q1.total_repeat=question_repeat
+            q1.save()
+            question_set=question_repeate+question_sets
+
+        elif len(question_repeate) > 0: #repeat_question:
+                
             q1.total_new_question=new_questions
             q1.total_repeat=question_repeat
             q1.save()
             question_set=question_repeate+question_sets
             
         else:
+
             q1.total_new_question=max_question
             q1.total_repeat=0
             q1.save()
@@ -544,7 +555,7 @@ class Sitting(models.Model):
                 uq=UQuestion.objects.get(quiz=self.quiz, user=self.user,questions=q)
             except UQuestion.DoesNotExist:
                 today = datetime.date.today()
-                yesterday = today - datetime.timedelta(days = 3)
+                yesterday = today - datetime.timedelta(days = 500)
                 uq=UQuestion.objects.create(quiz=self.quiz, user=self.user,questions=q,attempt_question=0,correct_answer=0,date_of_next_rep=datetime.date.today(),question_taken_date=datetime.date.today(),wrong_answer_date=yesterday,today_wrong_answer=0)
                 pre_qu=PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.user)
                 pre_qu.question_attemp=pre_qu.question_attemp+1
@@ -587,6 +598,7 @@ class Sitting(models.Model):
         date=str(date) 
         date=datetime.datetime.strptime(date, '%Y-%m-%d')
         question_rep_date=datetime.datetime.strptime(rep_question, '%Y-%m-%d')
+        
         if question_rep_date == date:
             # w1=[]
             if len(others) == 0:

@@ -15,9 +15,10 @@ from django.views.generic import RedirectView
 
 from .views import QuizListView, CategoriesListView, \
     ViewQuizListByCategory, QuizUserProgressView, QuizMarkingList, \
-    QuizMarkingDetail, QuizDetailView, QuizTake, quiz1,quizrep  
+    QuizMarkingDetail, QuizDetailView, QuizTake, quiz1,quizrep  ,TestingView
 
 urlpatterns = [
+    url(r'^testing/(?P<quiz_slug>[\w|\W-]+)/$', TestingView.as_view(),name='testing_view'),
 
     url(r'^quiz_index/$', 
         view=QuizListView.as_view(),
@@ -56,5 +57,6 @@ urlpatterns = [
     url(r'^(?P<slug>[\w-]+)/quiz_question_repeat/$', quizrep.as_view() , name='quiz_question_repeat'),
     
     url(r'$', RedirectView.as_view(url=reverse_lazy('quiz_index'), permanent=False)),
+
 
 ]+static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)

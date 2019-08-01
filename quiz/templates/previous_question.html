@@ -55,14 +55,19 @@
 
     {% if progress %}
     <div style="float: right;">
-    {% trans "Question" %} 
+     
     <!-- {{ progress.0|add:1 }}  -->   
     <!-- {% if progress.0|add:1 <= progress.1 %}  -->
 
-     {{ new_questi }}  of  {{new_question}} |  
-
+     <!-- {{ new_questi }}  of  {{new_question}} | -->  
+     
     <!-- {% endif %} -->
-{{ corection }} {{ question_info }}
+    {% if corection %}
+      {{ corection }} Questions Left | {{ question_info }}
+    {% else %}
+      {% trans "Question" %}
+      {{ new_questi }}  of  {{new_question}} |
+    {% endif %}
     </div>
     <!-- {% endif %} -->
     <br>
