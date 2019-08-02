@@ -63,10 +63,10 @@
      
     <!-- {% endif %} -->
     {% if corection %}
-      {{ corection }} Questions Left | {{ question_info }}
+      {{ corection }} {{ question_info1 }} Left | {{ question_info }}
     {% else %}
       {% trans "Question" %}
-      {{ new_questi }}  of  {{new_question}} |
+      {{ new_questi }}  of  {{new_question}} | {{ question_info }}
     {% endif %}
     </div>
     <!-- {% endif %} -->

@@ -44,7 +44,6 @@ class QuizafterResource(resources.ModelResource):
             for number in range(7,len(lst)):
 
                 answers = Answer.objects.filter(content=lst[number],question=q1)
-                print(lst)
                 if lst[number] in ["", " ", "  "] :
                     continue
                 elif len(answers) == 0:

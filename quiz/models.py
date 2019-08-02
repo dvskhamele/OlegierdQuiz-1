@@ -111,6 +111,12 @@ class Quiz(models.Model):
                     " Answers displayed at the end."),
         verbose_name=_("Answers at end"))
 
+    exam_mode = models.BooleanField(
+        blank=False, default=False,
+        help_text=_("Exam result show."
+                    "Progress Report show."),
+        verbose_name=_("Exam mode"))
+
     exam_paper = models.BooleanField(
         blank=False, default=False,
         help_text=_("If yes, the result of each"
@@ -206,9 +212,9 @@ class PersonalizedQuiz(models.Model):
     rember = models.CharField(max_length=24,default=0,verbose_name=_("rember"),blank=True,null=True)
     total_new_question = models.CharField(max_length=24,default=0,verbose_name=_("total_new_question"),blank=True,null=True)
     total_repeat = models.CharField(max_length=24,default=0,verbose_name=_("total_repeat"),blank=True,null=True)
-    question_attemp = models.IntegerField(max_length=24,default=0,verbose_name=_("question_attemp"),blank=True,null=True)
-    question_repe = models.IntegerField(max_length=24,default=0,verbose_name=_("question_repe"),blank=True,null=True)
-    correction = models.IntegerField(max_length=24,default=0,verbose_name=_("correction"),blank=True,null=True)
+    question_attemp = models.IntegerField(default=0,verbose_name=_("question_attemp"),blank=True,null=True)
+    question_repe = models.IntegerField(default=0,verbose_name=_("question_repe"),blank=True,null=True)
+    correction = models.IntegerField(default=0,verbose_name=_("correction"),blank=True,null=True)
 class Progress(models.Model):
     """
     Progress is used to track an individual signed in users score on different
@@ -417,7 +423,6 @@ class SittingManager(models.Manager):
 
         if len(question_set) < new_questions:
             remaing_questions=question_set
-            print("test")
             q1.total_new_question=len(remaing_questions)
             q1.total_repeat=question_repeat
             q1.save()

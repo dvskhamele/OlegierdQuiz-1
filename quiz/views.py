@@ -104,7 +104,62 @@ class ViewQuizListByCategory(ListView):
         queryset = super(ViewQuizListByCategory, self).get_queryset()
         return queryset.filter(category=self.category, draft=False)
 
+def progress_reports(request, *args, **kwargs):
+    question_ids=[]
+    question_corrects=[]
+    attemp_questions=[]
+    progress_report = []
+    for quiz in Quiz.objects.filter(personalized_quizes__user=request.user):
+        questions = Question.objects.filter(quiz=quiz)
+        total_question=questions.count()
+        if total_question == 0:
+            continue
+        progress_dict = {}
+        uquestions = UQuestion.objects.filter(user=request.user,quiz=quiz)
+        wrong_answer=uquestions.filter(today_wrong_answer=1).count()
+        correct_answer1=uquestions.filter(correct_answer=1).count()
+        correct_answer2=uquestions.filter(correct_answer=2).count()
+        correct_answer3=uquestions.filter(correct_answer=3).count()
+        correct_answer4=uquestions.filter(correct_answer=4).count()
+        correct_answer5=uquestions.filter(correct_answer=5).count()
+        correct_answer1=abs(correct_answer1-wrong_answer)
+        
+        correct_answers2=0
+        correct_answers3=0
+        correct_answers4=0
+        correct_answers5=0
+        if correct_answer2 > 0:
+            correct_answers2=uquestions.filter(correct_answer=2,today_wrong_answer=1).count()
 
+        if correct_answer3 > 0:
+            correct_answers3=uquestions.filter(correct_answer=3,today_wrong_answer=1).count()
+
+        if correct_answer4 > 0:
+            correct_answers4=uquestions.filter(correct_answer=4,today_wrong_answer=1).count()
+
+        # if correct_answer5 > 0:
+        #     correct_answers5=uquestions.filter(correct_answer=5,today_wrong_answer=1).count()
+
+        correct_answer2=correct_answer2-correct_answers2
+        correct_answer3=correct_answer3-correct_answers3
+        correct_answer4=correct_answer4-correct_answers4
+        # correct_answer5=correct_answer5-correct_answers5       
+        try:
+            progres1=(50 * correct_answer1 /total_question)
+            progres2=(25 * correct_answer2 /total_question)
+            progres3=(12.5 * correct_answer3 /total_question)
+            progres4=(7.5 * correct_answer4 /total_question)
+            # progres5=(5 * correct_answer5 /total_question)
+            progress_percentage=progres1+progres2+progres3+progres4
+            progress_dict["quiz"] = quiz.title
+            progress_dict["quiz_report"] = str(round(min(progress_percentage,100),2))
+
+            progress_report.append(progress_dict)
+
+        except PersonalizedQuiz.DoesNotExist:
+            return render(request, 'quiz/firstattemptprogress.html')
+
+    return progress_report
 
 
 class QuizUserProgressView(TemplateView):
@@ -122,59 +177,7 @@ class QuizUserProgressView(TemplateView):
         context['exams'] = progress.show_exams()
         
 
-        question_ids=[]
-        question_corrects=[]
-        attemp_questions=[]
-        progress_report = []
-        for quiz in Quiz.objects.filter(personalized_quizes__user=self.request.user):
-            questions = Question.objects.filter(quiz=quiz)
-            total_question=questions.count()
-            if total_question == 0:
-                continue
-            progress_dict = {}
-            uquestions = UQuestion.objects.filter(user=self.request.user,quiz=quiz)
-            wrong_answer=uquestions.filter(today_wrong_answer=1).count()
-            correct_answer1=uquestions.filter(correct_answer=1).count()
-            correct_answer2=uquestions.filter(correct_answer=2).count()
-            correct_answer3=uquestions.filter(correct_answer=3).count()
-            correct_answer4=uquestions.filter(correct_answer=4).count()
-            correct_answer5=uquestions.filter(correct_answer=5).count()
-            correct_answer1=abs(correct_answer1-wrong_answer)
-            
-            correct_answers2=0
-            correct_answers3=0
-            correct_answers4=0
-            correct_answers5=0
-            if correct_answer2 > 0:
-                correct_answers2=uquestions.filter(correct_answer=2,today_wrong_answer=1).count()
-
-            if correct_answer3 > 0:
-                correct_answers3=uquestions.filter(correct_answer=3,today_wrong_answer=1).count()
-
-            if correct_answer4 > 0:
-                correct_answers4=uquestions.filter(correct_answer=4,today_wrong_answer=1).count()
-
-            # if correct_answer5 > 0:
-            #     correct_answers5=uquestions.filter(correct_answer=5,today_wrong_answer=1).count()
-
-            correct_answer2=correct_answer2-correct_answers2
-            correct_answer3=correct_answer3-correct_answers3
-            correct_answer4=correct_answer4-correct_answers4
-            # correct_answer5=correct_answer5-correct_answers5       
-            try:
-                progres1=(50 * correct_answer1 /total_question)
-                progres2=(25 * correct_answer2 /total_question)
-                progres3=(12.5 * correct_answer3 /total_question)
-                progres4=(7.5 * correct_answer4 /total_question)
-                # progres5=(5 * correct_answer5 /total_question)
-                progress_percentage=progres1+progres2+progres3+progres4
-                progress_dict["quiz"] = quiz.title
-                progress_dict["quiz_report"] = str(round(min(progress_percentage,100),2))
-
-                progress_report.append(progress_dict)
-            except PersonalizedQuiz.DoesNotExist:
-                return render(self.request, 'quiz/firstattemptprogress.html')
-
+        progress_report=progress_reports(self.request)
         context={'progress_report':progress_report}
         return render(request, self.template_name, context)        
 class QuizMarkingList(QuizMarkerMixin, SittingFilterTitleMixin, ListView):
@@ -189,6 +192,8 @@ class QuizMarkingList(QuizMarkerMixin, SittingFilterTitleMixin, ListView):
             queryset = queryset.filter(user__username__icontains=user_filter)
 
         return queryset 
+
+
 
 
 class QuizMarkingDetail(QuizMarkerMixin, DetailView):
@@ -222,6 +227,7 @@ class QuizTake(FormView):
     previous_template_name = 'previous_question.html'
     result_template_name = 'result.html'
     single_complete_template_name = 'single_complete.html'
+    templates_name = 'progress.html'
 
     @method_decorator(login_required)
     def dispatch(self, request, *args, **kwargs):
@@ -311,10 +317,12 @@ class QuizTake(FormView):
         if new_questions == 0:
             new_question=peronalized_max_questions.total_new_question
             new_questi=peronalized_max_questions.question_attemp
-            context["new_questi"] = new_questi
-            context["question_info"] = "New Questions"
             context["new_question"] = new_question
-
+            context["new_questi"] = new_questi
+            if new_question == "1":
+                context["question_info"] = "New Question"
+            else:
+                context["question_info"] = "New Questions"
              
         else:
             date=datetime.date.today()
@@ -324,14 +332,22 @@ class QuizTake(FormView):
             if question_att_date == date:
                 corection=peronalized_max_questions.correction
                 context["corection"] = corection
-                context["question_info"] = "Corrections"
-
+                if corection == 1:
+                    context["question_info"] = "Correction"
+                    context["question_info1"] = "Question"
+                else:
+                    context["question_info"] = "Corrections"
+                    context["question_info1"] = "Questions"
             else:
                 new_questi=peronalized_max_questions.question_repe+1
                 context["new_questi"] = new_questi
                 repeat_question=peronalized_max_questions.total_repeat
-                context["question_info"] = "repetions"
                 context["new_question"] = repeat_question
+                if repeat_question == "1":
+                    context["question_info"] = "Repetation"
+                else:
+                    context["question_info"] = "Repetations"
+                
 
         context["remove_question"] = 0
         #context["undo_question"] =0
@@ -491,6 +507,8 @@ class QuizTake(FormView):
         self.sitting.remove_first_question()
             
     def final_result_user(self):
+        mode=Quiz.objects.get(title=self.quiz)
+        mode=mode.exam_mode
         results = {
             'quiz': self.quiz,
             'score': self.sitting.get_current_score,
@@ -511,7 +529,14 @@ class QuizTake(FormView):
         if self.quiz.exam_paper is False:
             self.sitting.delete()
 
-        return render(self.request, self.result_template_name, results)
+
+        if mode == True :
+            return render(self.request, self.result_template_name, results)
+        else:
+            progress_report=progress_reports(self.request)
+            context={'progress_report':progress_report}
+        return render(self.request, self.templates_name,context)
+
 
     def anon_load_sitting(self):
         if self.quiz.single_attempt is True:
