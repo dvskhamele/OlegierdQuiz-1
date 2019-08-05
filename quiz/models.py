@@ -15,7 +15,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 import pytz
 
-from timezone_field import TimeZoneField
+#from timezone_field import TimeZoneField
 
 from model_utils.managers import InheritanceManager
 
@@ -33,8 +33,21 @@ class CategoryManager(models.Manager):
         new_category.save()
         return new_category
 
+class Timezone(models.Model):
+    timezone = models.CharField(
+        verbose_name=_("timezone"),
+        max_length=250, blank=True, null=True)
+    def __str__(self):
+        return self.timezone
+
 class User(AbstractUser):
-    timezone1 = TimeZoneField(default='Europe/London')
+    #timezone1 = TimeZoneField(default='Europe/London')
+    # timezone1 = models.ForeignKey(
+    #     Timezone, null=True, blank=True, on_delete=models.CASCADE,)
+
+    timezone1 = models.CharField(
+        verbose_name=_("timezone"),
+        max_length=250, blank=True, null=True)
 
     def __str__(self):
         return self.username
@@ -774,9 +787,11 @@ class Sitting(models.Model):
             tz = self.user
             tz1=tz.timezone1
             tz2 = pytz.timezone(str(tz1))
+            print("tz2",tz2)
             user_time = datetime.datetime.now(tz2)
             user=user_time.strftime(fmt2)
             user_hour1=user[1]
+            print("user_hour1",user_hour1)
             user_hour2=user[2]
             if user_hour1 != "0":
                 hours=user[1:2]
