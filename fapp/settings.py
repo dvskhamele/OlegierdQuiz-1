@@ -39,26 +39,26 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'fileloader',
-    'debug_panel',
+    #'debug_panel',
     'quiz',
     'timezone_field',
     'multichoice',
     'true_false',
     'essay',
-    'debug_toolbar',
+    #'debug_toolbar',
     'import_export',
     'rest_framework',
 ]
 
-INTERNAL_IPS = [
-    '127.0.0.1',
-]
+#INTERNAL_IPS = [
+#    '127.0.0.1',
+#]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'debug_panel.middleware.DebugPanelMiddleware',
+    #'debug_panel.middleware.DebugPanelMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',

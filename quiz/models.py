@@ -395,6 +395,8 @@ class SittingManager(models.Manager):
                                             .select_subclasses()
            
 
+
+        
         question_set = [item.id for item in question_set]
         q1=PersonalizedQuiz.objects.get(quiz=quiz, user=user)
         repeat_question=q1.repeat_questions
@@ -416,6 +418,8 @@ class SittingManager(models.Manager):
             date=now.strftime(fmt)
             if question_rep_date == None:
                 question_rep_date = date
+            #date=datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+            #question_rep_date=datetime.datetime.strptime(question_rep_date, fmt)
             if question_correct > 0 and question_correct < 5:
                 check_question.append(question_lists)
                 if question_rep_date <= date:
@@ -432,6 +436,7 @@ class SittingManager(models.Manager):
         question_set=(list(set(question_set) - set(check_question)))
         random.shuffle(question_set)
         new_questions=max_question
+        #repeat_question=repeat_questions
         question_sets=question_set[0:new_questions]
         question_repeat=len(question_repeate)
 
