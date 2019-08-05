@@ -234,7 +234,7 @@ class Progress(models.Model):
     Data stored in csv using the format:
         category, score, possible, category, score, possible, ...
     """
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, verbose_name=_("User"), on_delete=models.CASCADE)
+    user = models.OneToOneField(User, verbose_name=_("User"), on_delete=models.CASCADE)
 
     score = models.CharField(max_length=1024,
                              verbose_name=_("Score"),
@@ -395,49 +395,6 @@ class SittingManager(models.Manager):
                                             .select_subclasses()
            
 
-
-        
-
-        # #fmt = "%Y-%m-%d %H:%M:%S %Z%z"
-        # #fmt = "%Y-%m-%d %H:%M:%S"                                    
-        # date1 = "%Y-%m-%d"
-        # # time1 = "%H:%M:%S"
-        # time1 = "%H:%M"
-        # userutc = "%Z%z"
-        # date12=datetime.date.today()
-        # print("timezone",date12)
-        # now = datetime.datetime.now()
-        # print("server date",now.strftime(date1))
-        # print("server time",now.strftime(time1))
-        # print("server time",now.strftime(userutc))
-        # first=now.strftime(time1)
-        # first1=first[0:2]
-        # first2=first[3:6]
-        # print("first1",first1)
-        # print("first2",first2)
-
-
-        # tz = user
-        # tz1=tz.timezone1
-        # print("tz",tz1)
-        # tz2 = pytz.timezone(str(tz1))
-        # now_time12 = datetime.datetime.now(tz2)
-        # #print("now_time12",now_time12)
-        # print("user date",now_time12.strftime(date1))
-        # print("user time",now_time12.strftime(time1))
-        # print("user utc",now_time12.strftime(userutc))
-        # second=now_time12.strftime(userutc)
-        # second1=second[0:3]
-        # second2=second[4:6]
-        # print("second1",second1)
-        # print("second2",second2)
-
-
-
-
-
-
-
         question_set = [item.id for item in question_set]
         q1=PersonalizedQuiz.objects.get(quiz=quiz, user=user)
         repeat_question=q1.repeat_questions
@@ -446,10 +403,8 @@ class SittingManager(models.Manager):
         q1.question_attemp=0
         q1.question_repe=0
         q1.save()
-        #repeat_question=int(repeat_question)
         max_question=int(max_question)
 
-        #repeat_questions=round(repeat_question * max_question /100)
         question_repeate=[]
         check_question=[]
         for q in UQuestion.objects.filter(quiz=quiz, user=user):
@@ -461,8 +416,6 @@ class SittingManager(models.Manager):
             date=now.strftime(fmt)
             if question_rep_date == None:
                 question_rep_date = date
-            #date=datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
-            #question_rep_date=datetime.datetime.strptime(question_rep_date, fmt)
             if question_correct > 0 and question_correct < 5:
                 check_question.append(question_lists)
                 if question_rep_date <= date:
@@ -479,7 +432,6 @@ class SittingManager(models.Manager):
         question_set=(list(set(question_set) - set(check_question)))
         random.shuffle(question_set)
         new_questions=max_question
-        #repeat_question=repeat_questions
         question_sets=question_set[0:new_questions]
         question_repeat=len(question_repeate)
 
@@ -670,20 +622,15 @@ class Sitting(models.Model):
         _, others = self.question_list.split(',', 1) 
         att_que = UQuestion.objects.get(quiz=self.quiz, user=self.user, questions__id=_)
         rep_question = att_que.date_of_next_rep
-        print("rep_question",rep_question)
         rep=rep_question[0:10]
-        print("rep",rep)
         fmt = "%Y-%m-%d %H:%M:%S"
         fmt1= "%Y-%m-%d"
         now = datetime.datetime.now()
         date_time=now.strftime(fmt)
         date_time1=now.strftime(fmt1)
-        print("date_time1",date_time1)
-        question_rep_date=rep_question#datetime.datetime.strptime(rep_question, '%Y-%m-%d %H:%M:%S')
+        question_rep_date=rep_question
         
         if rep == date_time1:
-        #if question_rep_date == date_time:
-            # w1=[]
             if len(others) == 0:
                 others=_+","
             elif others[len(others)-1] == ",":

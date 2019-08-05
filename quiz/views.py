@@ -332,13 +332,8 @@ class QuizTake(FormView):
             now = datetime.datetime.now() 
             date=now.strftime(fmt)
             date1=now.strftime(fmt1)
-            print("datetimes",date1)
-            #date=datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
-            #question_att_date=datetime.datetime.strptime(second_attempt_day, '%Y-%m-%d %H:%M:%S')
-            
             rep=second_attempt_day[0:10]
             timesss=second_attempt_day[12:19]
-            print("timesss",timesss)
             question_att_date=rep
             if question_att_date == date:
                 corection=peronalized_max_questions.correction
