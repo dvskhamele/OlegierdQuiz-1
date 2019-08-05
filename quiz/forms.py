@@ -3,6 +3,28 @@ from django.forms.widgets import RadioSelect, Textarea
 import random
 from .models import PersonalizedQuiz,UQuestion
 
+
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from .models import User
+
+
+class CustomUserCreationForm(UserCreationForm):
+    class Meta(UserCreationForm):
+        model = User
+        fields = ('username', 'email', 'password1', 'password2')
+
+
+class CustomUserChangeForm(UserChangeForm):
+    class Meta:
+        model = User
+        fields = UserChangeForm.Meta.fields
+
+
+
+
+
+
+
 class QuestionForm(forms.Form):
     def __init__(self, question, *args, **kwargs):
         super(QuestionForm, self).__init__(*args, **kwargs)        

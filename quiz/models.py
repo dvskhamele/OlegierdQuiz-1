@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 import re
 import json
 import random
-
+from datetime import timedelta 
 from django.db import models
 from django.core.exceptions import ValidationError, ImproperlyConfigured
 from django.core.validators import (
@@ -12,7 +12,10 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from django.utils.encoding import python_2_unicode_compatible
 from django.conf import settings
+from django.contrib.auth.models import AbstractUser
+import pytz
 
+from timezone_field import TimeZoneField
 
 from model_utils.managers import InheritanceManager
 
@@ -29,6 +32,13 @@ class CategoryManager(models.Manager):
 
         new_category.save()
         return new_category
+
+class User(AbstractUser):
+    timezone1 = TimeZoneField(default='Europe/London')
+
+    def __str__(self):
+        return self.username
+
 
 
 @python_2_unicode_compatible
@@ -202,7 +212,7 @@ class ProgressManager(models.Manager):
         return new_progress
 
 class PersonalizedQuiz(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="personalized_user", verbose_name=_("User"), on_delete=models.CASCADE ,blank=True,null=True)
+    user = models.ForeignKey(User, related_name="personalized_user", verbose_name=_("User"), on_delete=models.CASCADE ,blank=True,null=True)
     quiz = models.ForeignKey(Quiz, related_name="personalized_quizes",verbose_name=_("Quiz"), on_delete=models.CASCADE,blank=True,null=True )
     max_questions = models.CharField(max_length=1024,verbose_name=_("max_questionss"),blank=True,null=True)
     repeat_questions = models.CharField(max_length=1024,verbose_name=_("repeat_questions"),blank=True,null=True)
@@ -215,6 +225,7 @@ class PersonalizedQuiz(models.Model):
     question_attemp = models.IntegerField(default=0,verbose_name=_("question_attemp"),blank=True,null=True)
     question_repe = models.IntegerField(default=0,verbose_name=_("question_repe"),blank=True,null=True)
     correction = models.IntegerField(default=0,verbose_name=_("correction"),blank=True,null=True)
+
 class Progress(models.Model):
     """
     Progress is used to track an individual signed in users score on different
@@ -334,8 +345,10 @@ class Progress(models.Model):
         """
         return Sitting.objects.filter(user=self.user, complete=True)
 
+
+
 class UQuestion(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="user_questions", verbose_name=_("User"), on_delete=models.CASCADE ,blank=True,null=True)
+    user = models.ForeignKey(User, related_name="user_questions", verbose_name=_("User"), on_delete=models.CASCADE ,blank=True,null=True)
     quiz = models.ForeignKey(Quiz, related_name="user_questions",verbose_name=_("Quiz1"), on_delete=models.CASCADE,blank=True,null=True )
     questions = models.ForeignKey('Question', related_name="user_questions",verbose_name=_("Questio"), on_delete=models.CASCADE,blank=True,null=True )
     attempt_question = models.IntegerField(verbose_name=_("attemp_questions"),blank=True,null=True)
@@ -382,6 +395,49 @@ class SittingManager(models.Manager):
                                             .select_subclasses()
            
 
+
+        
+
+        # #fmt = "%Y-%m-%d %H:%M:%S %Z%z"
+        # #fmt = "%Y-%m-%d %H:%M:%S"                                    
+        # date1 = "%Y-%m-%d"
+        # # time1 = "%H:%M:%S"
+        # time1 = "%H:%M"
+        # userutc = "%Z%z"
+        # date12=datetime.date.today()
+        # print("timezone",date12)
+        # now = datetime.datetime.now()
+        # print("server date",now.strftime(date1))
+        # print("server time",now.strftime(time1))
+        # print("server time",now.strftime(userutc))
+        # first=now.strftime(time1)
+        # first1=first[0:2]
+        # first2=first[3:6]
+        # print("first1",first1)
+        # print("first2",first2)
+
+
+        # tz = user
+        # tz1=tz.timezone1
+        # print("tz",tz1)
+        # tz2 = pytz.timezone(str(tz1))
+        # now_time12 = datetime.datetime.now(tz2)
+        # #print("now_time12",now_time12)
+        # print("user date",now_time12.strftime(date1))
+        # print("user time",now_time12.strftime(time1))
+        # print("user utc",now_time12.strftime(userutc))
+        # second=now_time12.strftime(userutc)
+        # second1=second[0:3]
+        # second2=second[4:6]
+        # print("second1",second1)
+        # print("second2",second2)
+
+
+
+
+
+
+
         question_set = [item.id for item in question_set]
         q1=PersonalizedQuiz.objects.get(quiz=quiz, user=user)
         repeat_question=q1.repeat_questions
@@ -400,18 +456,26 @@ class SittingManager(models.Manager):
             question_lists = q.questions.id
             question_correct = q.correct_answer
             question_rep_date = q.date_of_next_rep
-            date=datetime.date.today()
-            date=str(date)
+            fmt = "%Y-%m-%d %H:%M:%S"
+            now = datetime.datetime.now() 
+            date=now.strftime(fmt)
             if question_rep_date == None:
                 question_rep_date = date
-            date=datetime.datetime.strptime(date, '%Y-%m-%d')
-            question_rep_date=datetime.datetime.strptime(question_rep_date, '%Y-%m-%d')
+            #date=datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+            #question_rep_date=datetime.datetime.strptime(question_rep_date, fmt)
             if question_correct > 0 and question_correct < 5:
                 check_question.append(question_lists)
                 if question_rep_date <= date:
                     if not question_lists in  question_repeate:
                         question_repeate.append(question_lists)
         
+
+        
+
+
+
+
+
         question_set=(list(set(question_set) - set(check_question)))
         random.shuffle(question_set)
         new_questions=max_question
@@ -500,7 +564,7 @@ class Sitting(models.Model):
     with the answer the user gave.
     """
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("User"), on_delete=models.CASCADE)
+    user = models.ForeignKey(User, verbose_name=_("User"), on_delete=models.CASCADE)
 
     quiz = models.ForeignKey(Quiz, verbose_name=_("Quiz"), on_delete=models.CASCADE)
 
@@ -559,9 +623,13 @@ class Sitting(models.Model):
             try:
                 uq=UQuestion.objects.get(quiz=self.quiz, user=self.user,questions=q)
             except UQuestion.DoesNotExist:
-                today = datetime.date.today()
-                yesterday = today - datetime.timedelta(days = 500)
-                uq=UQuestion.objects.create(quiz=self.quiz, user=self.user,questions=q,attempt_question=0,correct_answer=0,date_of_next_rep=datetime.date.today(),question_taken_date=datetime.date.today(),wrong_answer_date=yesterday,today_wrong_answer=0)
+                
+                
+                fmt = "%Y-%m-%d %H:%M:%S"
+                now = datetime.datetime.now()
+                date_time=now.strftime(fmt)
+                yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                uq=UQuestion.objects.create(quiz=self.quiz, user=self.user,questions=q,attempt_question=0,correct_answer=0,date_of_next_rep=date_time,question_taken_date=date_time,wrong_answer_date=yesterday,today_wrong_answer=0)
                 pre_qu=PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.user)
                 pre_qu.question_attemp=pre_qu.question_attemp+1
                 pre_qu.save()
@@ -581,7 +649,10 @@ class Sitting(models.Model):
         que_id = self.question_list.split(",")[0]
         att_que = UQuestion.objects.get(quiz=self.quiz, user=self.user,questions=que_id)
         att_que.attempt_question = att_que.attempt_question + 1
-        att_que.question_taken_date = datetime.date.today()
+        fmt = "%Y-%m-%d %H:%M:%S"
+        now = datetime.datetime.now()
+        date_time=now.strftime(fmt)
+        att_que.question_taken_date = date_time
         att_que.save()
 
         if pre_q.previous_question_list ==  None:
@@ -599,12 +670,19 @@ class Sitting(models.Model):
         _, others = self.question_list.split(',', 1) 
         att_que = UQuestion.objects.get(quiz=self.quiz, user=self.user, questions__id=_)
         rep_question = att_que.date_of_next_rep
-        date=datetime.date.today()
-        date=str(date) 
-        date=datetime.datetime.strptime(date, '%Y-%m-%d')
-        question_rep_date=datetime.datetime.strptime(rep_question, '%Y-%m-%d')
+        print("rep_question",rep_question)
+        rep=rep_question[0:10]
+        print("rep",rep)
+        fmt = "%Y-%m-%d %H:%M:%S"
+        fmt1= "%Y-%m-%d"
+        now = datetime.datetime.now()
+        date_time=now.strftime(fmt)
+        date_time1=now.strftime(fmt1)
+        print("date_time1",date_time1)
+        question_rep_date=rep_question#datetime.datetime.strptime(rep_question, '%Y-%m-%d %H:%M:%S')
         
-        if question_rep_date == date:
+        if rep == date_time1:
+        #if question_rep_date == date_time:
             # w1=[]
             if len(others) == 0:
                 others=_+","
@@ -719,69 +797,170 @@ class Sitting(models.Model):
         add_answer_id = UQuestion.objects.get(quiz=self.quiz, user=self.user,questions=question.id)
 
         if check_answer == False:
+            fmt = "%Y-%m-%d %H:%M:%S"
+            now = datetime.datetime.now()
+            date_time=now.strftime(fmt)
 
-            add_answer_id.wrong_answer_date = datetime.date.today()
+            add_answer_id.wrong_answer_date = date_time
             add_answer_id.today_wrong_answer =1
 
 
         if check_answer == True:
-            date=datetime.date.today()
-            date=str(date)
-            wrong_answer=datetime.datetime.strptime(date, '%Y-%m-%d')
+            fmt = "%Y-%m-%d %H:%M:%S"
+            now = datetime.datetime.now()
+            wrong_answer=now.strftime(fmt)
             wrong_answer_table=add_answer_id.wrong_answer_date
-            wrong_answers=datetime.datetime.strptime(wrong_answer_table, '%Y-%m-%d')
-            if wrong_answers < wrong_answer:
+            # wrong_answers=datetime.datetime.strptime(wrong_answer_table)
+            if wrong_answer_table < wrong_answer:
                 add_answer_id.today_wrong_answer = 0            
 
             qusetion_rep=PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.user)
             qusetion_rep=qusetion_rep.repeat_questions
 
+            fmt2 = "%z"
+            
+            tz = self.user
+            tz1=tz.timezone1
+            tz2 = pytz.timezone(str(tz1))
+            user_time = datetime.datetime.now(tz2)
+            user=user_time.strftime(fmt2)
+            user_hour1=user[1]
+            user_hour2=user[2]
+            if user_hour1 != "0":
+                hours=user[1:2]
+            else:
+                hours=user[2]
+            user_time=user[3:5]
+            minute=user[3]
+            if minute != "0":
+                minutes=user[3:5]
+            else:
+                minutes=user[4]
+            value=user[0:1]
+            value=str(value)
 
             add_answer_id.correct_answer = add_answer_id.correct_answer + 1
             if add_answer_id.correct_answer == 1:
                 if qusetion_rep == "25":
-                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=2)
+                    if value == "-":
+                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=2)
+                    if value == "+":
+                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=2)
 
                 elif qusetion_rep == "50":
-                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=3)
+                    if value == "-":
+                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=3)
+                    if value == "+":
+                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=3)
+
 
                 elif qusetion_rep == "75":
-                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=4)
+                    if value == "-":
+                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=4)
+                    if value == "+":
+                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=4)
+
 
             if add_answer_id.correct_answer == 2:
                 if qusetion_rep == "25":
-                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=5)
+                    if value == "-":
+                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=5)
+                    if value == "+":
+                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=5)
+
 
                 elif qusetion_rep == "50":
-                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=7)
+                    if value == "-":
+                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=7)
+                    if value == "+":
+                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=7)
+
 
                 elif qusetion_rep == "75":
-                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=10)
+                    if value == "-":
+                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=10)
+                    if value == "+":
+                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=10)
+
 
 
             if add_answer_id.correct_answer == 3:
                 if qusetion_rep == "25":
-                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=14)
+                    if value == "-":
+                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=14)
+                    if value == "+":
+                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=14)
+
 
                 elif qusetion_rep == "50":
-                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=21)
+                    if value == "-":
+                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=21)
+                    if value == "+":
+                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=21)
+
 
                 elif qusetion_rep == "75":
-                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=30)
+                    if value == "-":
+                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=30)
+                    if value == "+":
+                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=30)
+
 
 
             if add_answer_id.correct_answer == 4:
                 if qusetion_rep == "25":
-                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=30)
+                    if value == "-":
+                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=30)
+                    if value == "+":
+                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=30)
+
 
                 elif qusetion_rep == "50":
-                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=60)
+                    if value == "-":
+                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=60)
+                    if value == "+":
+                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=60)
+
 
                 elif qusetion_rep == "75":
-                    add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=90)
+                    if value == "-":
+                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=90)
+                    if value == "+":
+                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=90)
+
 
             if add_answer_id.correct_answer > 4:
-                add_answer_id.date_of_next_rep = datetime.date.today() + datetime.timedelta(days=1025)
+                if value == "-":
+                    time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
+                    add_answer_id.date_of_next_rep = time + datetime.timedelta(days=365)
+                if value == "+":
+                    time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
+                    add_answer_id.date_of_next_rep = time + datetime.timedelta(days=365)
+
 
 
             

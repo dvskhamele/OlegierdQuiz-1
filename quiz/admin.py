@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.utils.translation import ugettext_lazy as _
 
-from .models import Quiz, Category, SubCategory, Progress, Question , PersonalizedQuiz , UQuestion
+from .models import Quiz, Category, SubCategory, Progress, Question , PersonalizedQuiz , UQuestion ,User
 from multichoice.models import MCQuestion, Answer
 from true_false.models import TF_Question
 from essay.models import Essay_Question
@@ -12,8 +12,36 @@ from import_export.admin import ImportExportModelAdmin
 
 import tablib
 from import_export import resources
-
+from .forms import CustomUserCreationForm , CustomUserChangeForm
 from .resources import QuizResource ,QuizafterResource
+
+from django.contrib.auth.admin import UserAdmin
+
+class UserAdmin(UserAdmin):
+
+    add_form = CustomUserCreationForm   
+    form = CustomUserChangeForm
+    model = User
+    list_display = ["email","username", "timezone1"]
+    list_filter = ["timezone1","username"]
+
+    fieldsets = (
+        (None, {'fields': ('first_name','timezone1' )}),
+        # (('Personal info'), {'fields': ('first_name', 'last_name')}),
+        # (('Permissions'), {'fields': ('is_active', 'is_staff', 'is_superuser',
+        # 'groups', 'user_permissions')}),
+        # (('Important dates'), {'fields': ('last_login', 'date_joined')}),
+        )
+
+
+    add_fieldsets = (
+        (None, {
+        'classes': ('wide',),
+        'fields': ('email', 'first_name', 'last_name', 'password1',
+        'password2',)})
+        )
+
+
 
 
 class AnswerInline(admin.TabularInline): 
@@ -117,3 +145,4 @@ admin.site.register(Essay_Question, EssayQuestionAdmin)
 admin.site.register(PersonalizedQuiz)
 admin.site.register(UQuestion)
 admin.site.register(Answer)
+admin.site.register(User , UserAdmin)

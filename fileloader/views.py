@@ -19,6 +19,13 @@ from rest_framework import generics, status
 from django_filters import rest_framework as filters
 import json
 
+
+# pq=PersonalizedQuiz.objects.get(user=request.user)
+#             pq.utc_time=request.POST['question']
+#             pq.save()
+
+
+
 def index(request):
     return render(request, 'fileloader/index.html')
 
@@ -45,6 +52,7 @@ def vasicekmodel(request):
     if request.method == 'POST':
         form = SetUpVasicek(request.POST)
         if form.is_valid():
+
             nosc = int(request.POST.get('number_of_scenarios'))
             vector_length = int(request.POST.get('vector_length'))
             start_rate= float(request.POST.get('start_rate'))

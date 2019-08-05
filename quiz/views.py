@@ -9,11 +9,13 @@ import datetime
 from .forms import QuestionForm, EssayForm, PersonalizedQuizForm
 from .models import *
 from essay.models import Essay_Question
-from django.views import View
+from django.views import View 
 from rest_framework.decorators import api_view
 from django.http import HttpResponse,  Http404
 from multichoice.models import MCQuestion,Answer
 from django.shortcuts import redirect
+#from datetime import datetime
+from pytz import timezone
 
 class TestingView(TemplateView):
     def get(self, request, quiz_slug, *args, **kwargs):
@@ -325,10 +327,19 @@ class QuizTake(FormView):
                 context["question_info"] = "New Questions"
              
         else:
-            date=datetime.date.today()
-            date=str(date) 
-            date=datetime.datetime.strptime(date, '%Y-%m-%d')
-            question_att_date=datetime.datetime.strptime(second_attempt_day, '%Y-%m-%d')
+            fmt = "%Y-%m-%d"
+            fmt1 = "%H:%M:%S"
+            now = datetime.datetime.now() 
+            date=now.strftime(fmt)
+            date1=now.strftime(fmt1)
+            print("datetimes",date1)
+            #date=datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+            #question_att_date=datetime.datetime.strptime(second_attempt_day, '%Y-%m-%d %H:%M:%S')
+            
+            rep=second_attempt_day[0:10]
+            timesss=second_attempt_day[12:19]
+            print("timesss",timesss)
+            question_att_date=rep
             if question_att_date == date:
                 corection=peronalized_max_questions.correction
                 context["corection"] = corection
@@ -483,6 +494,11 @@ class QuizTake(FormView):
         progress, c = Progress.objects.get_or_create(user=self.request.user)
         guess = form.cleaned_data['answers']
         is_correct = self.question.check_if_correct(guess)
+
+        
+
+
+
 
         if is_correct is True:
             self.sitting.add_to_score(1)

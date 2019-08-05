@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'fileloader',
     'debug_panel',
     'quiz',
+    'timezone_field',
     'multichoice',
     'true_false',
     'essay',
@@ -107,7 +108,7 @@ DATABASES = {
 #     }
 # }
 
-
+AUTH_USER_MODEL = 'quiz.User'
 
 
 # Password validation

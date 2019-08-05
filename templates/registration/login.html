@@ -4,12 +4,13 @@
 {% block body %}
 {% load static %}
 
+
   <div class="limiter">
   	<div class="container-login100" style="background-image: url('{% static 'images/img-01.jpg' %}');">
   		<div class="wrap-login100 p-t-190 p-b-30">
 
         <span class="login100-form-title p-t-10 p-b-45"> If you have an account please log in, otherwise please contact:  </span>
-
+     
         <div class="login100-form-avatar">
           <img src="{% static 'images/ob.png'  %}" alt="AVATAR">
         </div>
@@ -17,11 +18,11 @@
 
         <h4> xxx </h4>
         <br>
-        <form method="post">
+        <form method="post"> 
           {% csrf_token %}
           {{ form.as_p }}
 
-          <button class="login100-form-btn" type="submit">Login</button>
+          <button class="login100-form-btn" id="login_submit" value=timezone  type="submit">Login</button>
         </form>
             <br>
   			<a href="{% url 'index' %}" class="login100-form-btn" >Return to home</a>
@@ -30,4 +31,13 @@
   </div>
 
 
+
+<script>
+    var objdatetime=new Date();
+    var timezone=objdatetime.toTimeString();
+    var login_submit = document.getElementById("login_submit");
+    console.log("login_submit.value",login_submit.value) 
+    login_submit.value = timezone;
+    console.log("login_submit.value",login_submit.value) 
+</script>
 {% endblock %}
