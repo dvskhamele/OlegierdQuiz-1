@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'fileloader',
     #'debug_panel',
     'quiz',
-    #'timezone_field',
+    'timezone_field',
     'multichoice',
     'true_false',
     'essay',

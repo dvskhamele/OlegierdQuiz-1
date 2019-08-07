@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.utils.translation import ugettext_lazy as _
 
-from .models import Quiz, Category, SubCategory, Progress, Question , PersonalizedQuiz , UQuestion ,User ,Timezone
+from .models import Quiz, Category, SubCategory, Progress, Question , PersonalizedQuiz , UQuestion ,User ,TimeZone 
 from multichoice.models import MCQuestion, Answer
 from true_false.models import TF_Question
 from essay.models import Essay_Question
@@ -26,7 +26,7 @@ class UserAdmin(UserAdmin):
     list_filter = ["timezone1","username"]
 
     fieldsets = (
-        (None, {'fields': ('first_name','timezone1' )}),
+        (None, {'fields': ('timezone1', )}),
         # (('Personal info'), {'fields': ('first_name', 'last_name')}),
         # (('Permissions'), {'fields': ('is_active', 'is_staff', 'is_superuser',
         # 'groups', 'user_permissions')}),
@@ -147,4 +147,4 @@ admin.site.register(UQuestion)
 admin.site.register(Answer)
 admin.site.register(User , UserAdmin)
 
-admin.site.register(Timezone)
+admin.site.register(TimeZone)

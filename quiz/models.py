@@ -33,26 +33,36 @@ class CategoryManager(models.Manager):
         new_category.save()
         return new_category
 
-class Timezone(models.Model):
+# # class Timezone(models.Model):
+# #     timezone = models.CharField(
+# #         verbose_name=_("timezone"),
+# #         max_length=250, blank=True, null=True)
+# #     def __str__(self):
+# #         return self.timezone
+
+# class User(AbstractUser):
+#     timezone1 = TimeZoneField(default='Europe/London')
+#     # timezone1 = models.ForeignKey(
+#     #     Timezone, null=True, blank=True, on_delete=models.CASCADE,)
+
+#     # timezone1 = models.CharField(
+#     #     verbose_name=_("timezone"),
+#     #     max_length=250, blank=True, null=True)
+
+#     def __str__(self):
+#         return self.username
+
+class TimeZone(models.Model):
     timezone = models.CharField(
-        verbose_name=_("timezone"),
         max_length=250, blank=True, null=True)
     def __str__(self):
         return self.timezone
-
+ 
 class User(AbstractUser):
-    #timezone1 = TimeZoneField(default='Europe/London')
-    # timezone1 = models.ForeignKey(
-    #     Timezone, null=True, blank=True, on_delete=models.CASCADE,)
-
-    timezone1 = models.CharField(
-        verbose_name=_("timezone"),
-        max_length=250, blank=True, null=True)
-
+     #timezone1 = TimeZoneField(default='Europe/London')
+    timezone1 = models.ForeignKey(TimeZone, null=True, blank=True, on_delete=models.CASCADE, default=1)
     def __str__(self):
         return self.username
-
-
 
 @python_2_unicode_compatible
 class Category(models.Model):
@@ -641,14 +651,16 @@ class Sitting(models.Model):
         att_que = UQuestion.objects.get(quiz=self.quiz, user=self.user, questions__id=_)
         rep_question = att_que.date_of_next_rep
         rep=rep_question[0:10]
-        fmt = "%Y-%m-%d %H:%M:%S"
         fmt1= "%Y-%m-%d"
         now = datetime.datetime.now()
-        date_time=now.strftime(fmt)
         date_time1=now.strftime(fmt1)
-        question_rep_date=rep_question
-        
-        if rep == date_time1:
+        date_time1=datetime.datetime.strptime(date_time1, fmt1)
+        question_rep_date=datetime.datetime.strptime(rep, fmt1)
+        print("question_rep_date",question_rep_date)
+        print(type(question_rep_date))
+        print("date_time1",date_time1)
+        print(type(date_time1))
+        if question_rep_date <= date_time1:
             if len(others) == 0:
                 others=_+","
             elif others[len(others)-1] == ",":
@@ -784,6 +796,9 @@ class Sitting(models.Model):
 
             fmt2 = "%z"
             
+            fmt3 = "%H:%M"
+            fmt4 = "%Y-%m-%d %H:%M:%S"
+
             tz = self.user
             tz1=tz.timezone1
             tz2 = pytz.timezone(str(tz1))
@@ -791,133 +806,277 @@ class Sitting(models.Model):
             user_time = datetime.datetime.now(tz2)
             user=user_time.strftime(fmt2)
             user_hour1=user[1]
-            print("user_hour1",user_hour1)
+            print("user_hour",user_hour1)
             user_hour2=user[2]
             if user_hour1 != "0":
-                hours=user[1:2]
+                hours=user[1:3]
+                print("timezone",hours)
             else:
                 hours=user[2]
+                print("timezone",hours)
             user_time=user[3:5]
             minute=user[3]
             if minute != "0":
                 minutes=user[3:5]
+                print("minutes",minutes)
             else:
                 minutes=user[4]
+                print("minutess",minutes)
             value=user[0:1]
             value=str(value)
-
+            print("value",value)
             add_answer_id.correct_answer = add_answer_id.correct_answer + 1
             if add_answer_id.correct_answer == 1:
                 if qusetion_rep == "25":
                     if value == "-":
-                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=2)
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=2) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
+                        
                     if value == "+":
-                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=2)
-
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=2) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
+                
                 elif qusetion_rep == "50":
                     if value == "-":
-                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=3)
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=3) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
                     if value == "+":
-                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=3)
-
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=3) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
 
                 elif qusetion_rep == "75":
                     if value == "-":
-                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=4)
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=4) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
                     if value == "+":
-                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=4)
-
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=4) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
 
             if add_answer_id.correct_answer == 2:
                 if qusetion_rep == "25":
                     if value == "-":
-                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=5)
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=5) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
                     if value == "+":
-                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=5)
-
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=5) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
 
                 elif qusetion_rep == "50":
                     if value == "-":
-                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=7)
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=7) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
                     if value == "+":
-                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=7)
-
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=7) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
 
                 elif qusetion_rep == "75":
                     if value == "-":
-                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=10)
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=10) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
                     if value == "+":
-                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=10)
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=10) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
 
 
 
             if add_answer_id.correct_answer == 3:
                 if qusetion_rep == "25":
                     if value == "-":
-                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=14)
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=14) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
                     if value == "+":
-                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=14)
-
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=14) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
 
                 elif qusetion_rep == "50":
                     if value == "-":
-                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=21)
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=21) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
                     if value == "+":
-                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=21)
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=21) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
 
 
                 elif qusetion_rep == "75":
                     if value == "-":
-                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=30)
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=30) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
                     if value == "+":
-                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=30)
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=30) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
 
 
 
             if add_answer_id.correct_answer == 4:
                 if qusetion_rep == "25":
                     if value == "-":
-                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=30)
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=30) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
                     if value == "+":
-                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=30)
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=30) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
 
 
                 elif qusetion_rep == "50":
                     if value == "-":
-                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=60)
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=60) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
                     if value == "+":
-                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=60)
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=60) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
 
 
                 elif qusetion_rep == "75":
                     if value == "-":
-                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=90)
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=90) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
                     if value == "+":
-                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
-                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=90)
+                        fmt5 = "%Y-%m-%d %H:%M:%S"
+                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                        datess=datetime.date.today() + datetime.timedelta(days=90) 
+                        datess=str(datess)
+                        time=str(time)
+                        user_date=datess+" "+time 
+                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                        add_answer_id.date_of_next_rep=user_date_time
 
 
             if add_answer_id.correct_answer > 4:
