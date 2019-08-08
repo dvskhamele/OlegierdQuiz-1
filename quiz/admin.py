@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.utils.translation import ugettext_lazy as _
 
-from .models import Quiz, Category, SubCategory, Progress, Question , PersonalizedQuiz , UQuestion ,User ,TimeZone 
+from .models import Quiz, Category, SubCategory, Progress, Question , PersonalizedQuiz , UQuestion ,User ,TimeZone
 from multichoice.models import MCQuestion, Answer
 from true_false.models import TF_Question
 from essay.models import Essay_Question
@@ -34,12 +34,12 @@ class UserAdmin(UserAdmin):
         )
 
 
-    add_fieldsets = (
-        (None, {
-        'classes': ('wide',),
-        'fields': ('email', 'first_name', 'last_name', 'password1',
-        'password2',)})
-        )
+    # add_fieldsets = (
+    #     (None, {
+    #     'classes': ('wide',),
+    #     'fields': ('email', 'first_name', 'last_name', 'password1',
+    #     'password2',)})
+    #     )
 
 
 

@@ -316,6 +316,7 @@ class QuizTake(FormView):
         modify = UQuestion.objects.get(quiz=self.quiz, user=self.request.user,questions=self.question)
         new_questions=modify.attempt_question
         second_attempt_day=modify.question_taken_date
+        next_rep_date=modify.date_of_next_rep
         if new_questions == 0:
             new_question=peronalized_max_questions.total_new_question
             new_questi=peronalized_max_questions.question_attemp
@@ -325,7 +326,7 @@ class QuizTake(FormView):
                 context["question_info"] = "New Question"
             else:
                 context["question_info"] = "New Questions"
-             
+        
         else:
             fmt = "%Y-%m-%d"
             fmt1 = "%H:%M:%S"
@@ -335,6 +336,15 @@ class QuizTake(FormView):
             rep=second_attempt_day[0:10]
             timesss=second_attempt_day[12:19]
             question_att_date=rep
+            if question_att_date < date:
+                if modify.correct_answer == 0:
+                    if peronalized_max_questions.rember_questions == 1:
+                        corection=peronalized_max_questions.correction
+                        peronalized_max_questions.question_repe=0
+                        peronalized_max_questions.total_repeat=corection
+                        peronalized_max_questions.rember_questions=0
+                        peronalized_max_questions.save()
+
             if question_att_date == date:
                 corection=peronalized_max_questions.correction
                 context["corection"] = corection
@@ -351,7 +361,7 @@ class QuizTake(FormView):
                 context["new_question"] = repeat_question
                 if repeat_question == "1":
                     context["question_info"] = "Repetation"
-                else:
+                else: 
                     context["question_info"] = "Repetations"
                 
 
