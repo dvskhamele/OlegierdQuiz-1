@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.utils.translation import ugettext_lazy as _
 
-from .models import Quiz, Category, SubCategory, Progress, Question , PersonalizedQuiz , UQuestion ,User ,TimeZone
+from .models import Quiz, Category, SubCategory, Progress, Question , PersonalizedQuiz , UQuestion ,User  #,TimeZone 
 from multichoice.models import MCQuestion, Answer
 from true_false.models import TF_Question
 from essay.models import Essay_Question
@@ -146,5 +146,4 @@ admin.site.register(PersonalizedQuiz)
 admin.site.register(UQuestion)
 admin.site.register(Answer)
 admin.site.register(User , UserAdmin)
-
-admin.site.register(TimeZone)
+# admin.site.register(TimeZone)

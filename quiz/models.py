@@ -33,17 +33,17 @@ class CategoryManager(models.Manager):
         new_category.save()
         return new_category
 
-class TimeZone(models.Model):
-    timezone = models.CharField(
+# class TimeZone(models.Model):
+#     timezone = models.CharField(
     
-        max_length=250, blank=True, null=True)
-    def __str__(self):
-        return self.timezone
+#         max_length=250, blank=True, null=True)
+#     def __str__(self):
+#         return self.timezone
 
 class User(AbstractUser):
-    #timezone1 = TimeZoneField(default='Europe/London')
-    timezone1 = models.ForeignKey(
-        TimeZone, null=True, blank=True, on_delete=models.CASCADE,)
+    timezone1 = TimeZoneField(default='Europe/London')
+    # timezone1 = models.ForeignKey(
+    #     TimeZone, null=True, blank=True, on_delete=models.CASCADE,default=1)
 
     def __str__(self):
         return self.username
@@ -235,6 +235,7 @@ class PersonalizedQuiz(models.Model):
     question_repe = models.IntegerField(default=0,verbose_name=_("question_repe"),blank=True,null=True)
     correction = models.IntegerField(default=0,verbose_name=_("correction"),blank=True,null=True)
     rember_questions = models.IntegerField(default=0,verbose_name=_("rember_questions"),blank=True,null=True)
+    tempory_questions= models.IntegerField(default=0,verbose_name=_("tempory_questions"),blank=True,null=True)
 
 class Progress(models.Model):
     """
@@ -412,12 +413,20 @@ class SittingManager(models.Manager):
         repeat_question=q1.repeat_questions
         max_question = q1.max_questions
         q1.rember=0
-        q1.question_attemp=0
+        mode=Quiz.objects.get(title=quiz)
+        mode=mode.exam_mode
+        if mode == False:
+            q1.question_attemp=0
+        else:
+            q1.question_attemp=1
         q1.question_repe=0
         q1.rember_questions=1
         q1.save()
         max_question=int(max_question)
 
+        random_orders=Quiz.objects.get(title=quiz)
+        random_order=random_orders.random_order
+        
         question_repeate=[]
         check_question=[]
         for q in UQuestion.objects.filter(quiz=quiz, user=user):
@@ -440,34 +449,67 @@ class SittingManager(models.Manager):
 
         
 
-        question_set=(list(set(question_set) - set(check_question)))
-        random.shuffle(question_set)
-        new_questions=max_question
-        question_sets=question_set[0:new_questions]
-        question_repeat=len(question_repeate)
-
-        random.shuffle(question_sets)
-
-        if len(question_set) < new_questions:
-            remaing_questions=question_set
-            q1.total_new_question=len(remaing_questions)
-            q1.total_repeat=question_repeat
-            q1.save()
-            question_set=question_repeate+question_sets
-
-        elif len(question_repeate) > 0: #repeat_question:
-                
-            q1.total_new_question=new_questions
-            q1.total_repeat=question_repeat
-            q1.save()
-            question_set=question_repeate+question_sets
-            
+        #question_set=(list(set(question_set) - set(check_question)))
+        #random.shuffle(question_set)
+        new_questionss=max_question
+        tempory_questions_set=question_set
+        print("tempory_questions_set",tempory_questions_set)
+        if random_order == True:
+            random.shuffle(tempory_questions_set)
+            question_setss=tempory_questions_set[0:new_questionss]
         else:
-
-            q1.total_new_question=max_question
-            q1.total_repeat=0
+            q1.tempory_questions=q1.tempory_questions+max_question
             q1.save()
-            question_set=question_sets
+            temp_questions=q1.tempory_questions
+            print("temp_questions",temp_questions)
+            tempory_question=q1.tempory_questions-max_question
+            print("len(tempory_questions_set)",len(tempory_questions_set))
+            if len(tempory_questions_set) <= temp_questions:
+                q1.tempory_questions=max_question
+                q1.save()
+                question_setss=tempory_questions_set[0:max_question]
+                print("question_setss 1",question_setss)
+            else:
+                question_setss=tempory_questions_set[tempory_question:temp_questions]
+                print("question_setss 2",question_setss)
+                
+
+        mode=Quiz.objects.get(title=quiz)
+        mode=mode.exam_mode
+        if mode == False:
+            question_set=(list(set(question_set) - set(check_question)))
+            #random.shuffle(question_set)
+            new_questions=max_question
+            question_sets=question_set[0:new_questions]
+            question_repeat=len(question_repeate)
+
+            if random_order == True:
+                random.shuffle(question_sets)
+
+            if len(question_set) < new_questions:
+                remaing_questions=question_set
+                q1.total_new_question=len(remaing_questions)
+                q1.total_repeat=question_repeat
+                q1.save()
+                question_set=question_repeate+question_sets
+
+            elif len(question_repeate) > 0: #repeat_question:
+                    
+                q1.total_new_question=new_questions
+                q1.total_repeat=question_repeat
+                q1.save()
+                question_set=question_repeate+question_sets
+                
+            else:
+
+                q1.total_new_question=max_question
+                #q1.total_repeat=0
+                q1.save()
+                question_set=question_sets
+        else:
+            q1.total_new_question=max_question
+            q1.save()
+            question_set=question_setss
 
 
         if len(question_set) == 0:
@@ -580,22 +622,25 @@ class Sitting(models.Model):
         questions_count = questions.count()
         user_questions=UQuestion.objects.filter(quiz=self.quiz, user=self.user)
         user_questions_count = user_questions.count()
-            
+        
+
         for q in Question.objects.filter(quiz=self.quiz,id=question_id):
         
             try:
                 uq=UQuestion.objects.get(quiz=self.quiz, user=self.user,questions=q)
             except UQuestion.DoesNotExist:
                 
-                
-                fmt = "%Y-%m-%d %H:%M:%S"
-                now = datetime.datetime.now()
-                date_time=now.strftime(fmt)
-                yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
-                uq=UQuestion.objects.create(quiz=self.quiz, user=self.user,questions=q,attempt_question=0,correct_answer=0,date_of_next_rep=date_time,question_taken_date=date_time,wrong_answer_date=yesterday,today_wrong_answer=0)
-                pre_qu=PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.user)
-                pre_qu.question_attemp=pre_qu.question_attemp+1
-                pre_qu.save()
+                mode=Quiz.objects.get(title=self.quiz)
+                mode=mode.exam_mode
+                if mode == False:
+                    fmt = "%Y-%m-%d %H:%M:%S"
+                    now = datetime.datetime.now()
+                    date_time=now.strftime(fmt)
+                    yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                    uq=UQuestion.objects.create(quiz=self.quiz, user=self.user,questions=q,attempt_question=0,correct_answer=0,date_of_next_rep=date_time,question_taken_date=date_time,wrong_answer_date=yesterday,today_wrong_answer=0)
+                    pre_qu=PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.user)
+                    pre_qu.question_attemp=pre_qu.question_attemp+1
+                    pre_qu.save()
         return Question.objects.get_subclass(id=question_id)
 
         
@@ -609,67 +654,84 @@ class Sitting(models.Model):
             pre_q=PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.user)
         except PersonalizedQuiz.DoesNotExist:
             pre_q=PersonalizedQuiz.objects.create(quiz=self.quiz, user=self.user)
-        que_id = self.question_list.split(",")[0]
-        att_que = UQuestion.objects.get(quiz=self.quiz, user=self.user,questions=que_id)
-        att_que.attempt_question = att_que.attempt_question + 1
-        fmt = "%Y-%m-%d %H:%M:%S"
-        now = datetime.datetime.now()
-        date_time=now.strftime(fmt)
-        att_que.question_taken_date = date_time
-        att_que.save()
+        
+        mode=Quiz.objects.get(title=self.quiz)
+        mode=mode.exam_mode
+        if mode == False:
+            que_id = self.question_list.split(",")[0]
+            att_que = UQuestion.objects.get(quiz=self.quiz, user=self.user,questions=que_id)
+            att_que.attempt_question = att_que.attempt_question + 1
+            fmt = "%Y-%m-%d %H:%M:%S"
+            now = datetime.datetime.now()
+            date_time=now.strftime(fmt)
+            att_que.question_taken_date = date_time
+            att_que.save()
 
-        if pre_q.previous_question_list ==  None:
-            previous_question_list = []
-            previous_question_list.append(que_id)
-            pre_q.previous_question_list = previous_question_list
-            
+            if pre_q.previous_question_list ==  None:
+                previous_question_list = []
+                previous_question_list.append(que_id)
+                pre_q.previous_question_list = previous_question_list
+                
+            else:
+                previous_question_list = pre_q.previous_question_list
+                previous_question_list = previous_question_list.replace('[',"").replace("'","").replace(']',"").split(', ')
+                previous_question_list.append(que_id)
+                pre_q.previous_question_list = list(set(previous_question_list))
+            pre_q.save()
         else:
-            previous_question_list = pre_q.previous_question_list
-            previous_question_list = previous_question_list.replace('[',"").replace("'","").replace(']',"").split(', ')
-            previous_question_list.append(que_id)
-            pre_q.previous_question_list = list(set(previous_question_list))
-        pre_q.save()
-
+            pre_qu=PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.user)
+            pre_qu.question_attemp=pre_qu.question_attemp+1
+            pre_qu.save()
+        
         _, others = self.question_list.split(',', 1) 
-        att_que = UQuestion.objects.get(quiz=self.quiz, user=self.user, questions__id=_)
-        rep_question = att_que.date_of_next_rep
-        rep=rep_question[0:10]
-        attemp_q=att_que.question_taken_date
-        attemp_question=attemp_q[0:10]
-        fmt1= "%Y-%m-%d"
-        question_att=datetime.datetime.strptime(attemp_question, fmt1)
-        question_rep_date=datetime.datetime.strptime(rep, fmt1)
-        if question_rep_date <= question_att:
+        mode=Quiz.objects.get(title=self.quiz)
+        mode=mode.exam_mode
+        if mode == False:
+            att_que = UQuestion.objects.get(quiz=self.quiz, user=self.user, questions__id=_)
+            rep_question = att_que.date_of_next_rep
+            rep=rep_question[0:10]
+            attemp_q=att_que.question_taken_date
+            attemp_question=attemp_q[0:10]
+            fmt1= "%Y-%m-%d"
+            question_att=datetime.datetime.strptime(attemp_question, fmt1)
+            question_rep_date=datetime.datetime.strptime(rep, fmt1)
             
-            if len(others) == 0:
-                others=_+","
-            elif others[len(others)-1] == ",":
-                others=others+ _ +","
-            self.question_list = others
-            corrections=self.question_list.count(",")
-            pre_q.correction=corrections
-            # if att_que.correct_answer == 0:
-            #     pre_q.total_repeat=corrections+1 
-
-            self.save()
-            pre_q.save()
-            que_ids = self.question_list.split(",")[0]
             
+            
+            if question_rep_date <= question_att:
+                
+                if len(others) == 0:
+                    others=_+","
+                elif others[len(others)-1] == ",":
+                    others=others+ _ +","
+                self.question_list = others
+                corrections=self.question_list.count(",")
+                pre_q.correction=corrections
+                # if att_que.correct_answer == 0:
+                #     pre_q.total_repeat=corrections+1 
 
+                self.save()
+                pre_q.save()
+                que_ids = self.question_list.split(",")[0]
+                
+
+            else:
+                self.question_list = others
+                self.save()   
+                corrections=self.question_list.count(",")
+                pre_q.correction=corrections
+                pre_q.save()
+                que_ids = self.question_list.split(",")[0]
         else:
             self.question_list = others
-            self.save()   
-            corrections=self.question_list.count(",")
-            pre_q.correction=corrections
-            pre_q.save()
+            self.save()
             que_ids = self.question_list.split(",")[0]
-
-
 
 
 
     def add_to_score(self, points):
         self.current_score += int(points)
+        print("self.current_score",self.current_score)
         self.save()
 
     @property
@@ -752,437 +814,655 @@ class Sitting(models.Model):
   
         answer_id=Answer.objects.get(id=current[question.id])
         check_answer=answer_id.correct
-        add_answer_id = UQuestion.objects.get(quiz=self.quiz, user=self.user,questions=question.id)
-
-        if check_answer == False:
-            fmt2 = "%z"
-            tz = self.user
-            tz1=tz.timezone1
-            tz2 = pytz.timezone(str(tz1))
-            user_time = datetime.datetime.now(tz2)
-            user=user_time.strftime(fmt2)
-            user_hour1=user[1]
-            user_hour2=user[2]
-            if user_hour1 != "0":
-                hours=user[1:3]
-            else:
-                hours=user[2]
-            user_time=user[3:5]
-            minute=user[3]
-            if minute != "0":
-                minutes=user[3:5]
-            else:
-                minutes=user[4]
-            value=user[0:1]
-            value=str(value)
-            if value == "-":
-                fmt5 = "%Y-%m-%d %H:%M:%S"
-                time=timedelta(hours=int(hours),minutes=int(minutes))
-                datess=datetime.date.today() 
-                datess=str(datess)
-                time=str(time)
-                user_date=datess+" "+time 
-                user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                add_answer_id.date_of_next_rep=user_date_time
-                
-            if value == "+":
-                fmt5 = "%Y-%m-%d %H:%M:%S"
-                time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                datess=datetime.date.today() 
-                datess=str(datess)
-                time=str(time)
-                user_date=datess+" "+time 
-                user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                add_answer_id.date_of_next_rep=user_date_time
-            if value == " ":
-                fmt1= "%Y-%m-%d %H:%M:%S"
-                now = datetime.datetime.now()
-                date_time1=now.strftime(fmt1)
-                user_date_time=datetime.datetime.strptime(date_time1, fmt1)
-            add_answer_id.wrong_answer_date = user_date_time
-            add_answer_id.question_taken_date= user_date_time
-            add_answer_id.today_wrong_answer =1
-
-
-        if check_answer == True:
-            fmt = "%Y-%m-%d %H:%M:%S"
-            now = datetime.datetime.now()
-            wrong_answer=now.strftime(fmt)
-            wrong_answer_table=add_answer_id.wrong_answer_date
-            # wrong_answers=datetime.datetime.strptime(wrong_answer_table)
-            if wrong_answer_table < wrong_answer:
-                add_answer_id.today_wrong_answer = 0            
-
-            qusetion_rep=PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.user)
-            qusetion_rep=qusetion_rep.repeat_questions
-
-            fmt2 = "%z"
-            tz = self.user
-            tz1=tz.timezone1
-            tz2 = pytz.timezone(str(tz1))
-            user_time = datetime.datetime.now(tz2)
-            user=user_time.strftime(fmt2)
-            user_hour1=user[1]
-            user_hour2=user[2]
-            if user_hour1 != "0":
-                hours=user[1:3]
-            else:
-                hours=user[2]
-            user_time=user[3:5]
-            minute=user[3]
-            if minute != "0":
-                minutes=user[3:5]
-            else:
-                minutes=user[4]
-            value=user[0:1]
-            value=str(value)
-            add_answer_id.correct_answer = add_answer_id.correct_answer + 1
-            if add_answer_id.correct_answer == 1:
-                if qusetion_rep == "25":
-                    if value == "-":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=2) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                        
-                    if value == "+":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=2) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-
-                    if value == " ":
-                        fmt1= "%Y-%m-%d %H:%M:%S"
-                        now = datetime.datetime.now() + datetime.timedelta(days=2)
-                        date_time1=now.strftime(fmt1)
-                        user_date_time=datetime.datetime.strptime(date_time1, fmt1)
-                        add_answer_id.date_of_next_rep=user_date_time
-
-                elif qusetion_rep == "50":
-                    if value == "-":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=3) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == "+":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=3) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == " ":
-                        fmt1= "%Y-%m-%d %H:%M:%S"
-                        now = datetime.datetime.now() + datetime.timedelta(days=3)
-                        date_time1=now.strftime(fmt1)
-                        user_date_time=datetime.datetime.strptime(date_time1, fmt1)
-                        add_answer_id.date_of_next_rep=user_date_time
-
-
-                elif qusetion_rep == "75":
-                    if value == "-":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=4) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == "+":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=4) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == " ":
-                        fmt1= "%Y-%m-%d %H:%M:%S"
-                        now = datetime.datetime.now() + datetime.timedelta(days=4)
-                        date_time1=now.strftime(fmt1)
-                        user_date_time=datetime.datetime.strptime(date_time1, fmt1)
-                        add_answer_id.date_of_next_rep=user_date_time
-
-            if add_answer_id.correct_answer == 2:
-                if qusetion_rep == "25":
-                    if value == "-":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=5) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == "+":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=5) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == " ":
-                        fmt1= "%Y-%m-%d %H:%M:%S"
-                        now = datetime.datetime.now() + datetime.timedelta(days=5)
-                        date_time1=now.strftime(fmt1)
-                        user_date_time=datetime.datetime.strptime(date_time1, fmt1)
-                        add_answer_id.date_of_next_rep=user_date_time
-
-                elif qusetion_rep == "50":
-                    if value == "-":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=7) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == "+":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=7) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == " ":
-                        fmt1= "%Y-%m-%d %H:%M:%S"
-                        now = datetime.datetime.now() + datetime.timedelta(days=7)
-                        date_time1=now.strftime(fmt1)
-                        user_date_time=datetime.datetime.strptime(date_time1, fmt1)
-                        add_answer_id.date_of_next_rep=user_date_time
-
-                elif qusetion_rep == "75":
-                    if value == "-":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=10) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == "+":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=10) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == " ":
-                        fmt1= "%Y-%m-%d %H:%M:%S"
-                        now = datetime.datetime.now() + datetime.timedelta(days=10)
-                        date_time1=now.strftime(fmt1)
-                        user_date_time=datetime.datetime.strptime(date_time1, fmt1)
-                        add_answer_id.date_of_next_rep=user_date_time
-
-
-
-            if add_answer_id.correct_answer == 3:
-                if qusetion_rep == "25":
-                    if value == "-":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=14) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == "+":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=14) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == " ":
-                        fmt1= "%Y-%m-%d %H:%M:%S"
-                        now = datetime.datetime.now() + datetime.timedelta(days=14)
-                        date_time1=now.strftime(fmt1)
-                        user_date_time=datetime.datetime.strptime(date_time1, fmt1)
-                        add_answer_id.date_of_next_rep=user_date_time
-
-
-                elif qusetion_rep == "50":
-                    if value == "-":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=21) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == "+":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=21) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == " ":
-                        fmt1= "%Y-%m-%d %H:%M:%S"
-                        now = datetime.datetime.now() + datetime.timedelta(days=21)
-                        date_time1=now.strftime(fmt1)
-                        user_date_time=datetime.datetime.strptime(date_time1, fmt1)
-                        add_answer_id.date_of_next_rep=user_date_time
-
-
-                elif qusetion_rep == "75":
-                    if value == "-":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=30) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == "+":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=30) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == " ":
-                        fmt1= "%Y-%m-%d %H:%M:%S"
-                        now = datetime.datetime.now() + datetime.timedelta(days=30)
-                        date_time1=now.strftime(fmt1)
-                        user_date_time=datetime.datetime.strptime(date_time1, fmt1)
-                        add_answer_id.date_of_next_rep=user_date_time
-
-
-
-            if add_answer_id.correct_answer == 4:
-                if qusetion_rep == "25":
-                    if value == "-":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=30) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == "+":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=30) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == " ":
-                        fmt1= "%Y-%m-%d %H:%M:%S"
-                        now = datetime.datetime.now() + datetime.timedelta(days=30)
-                        date_time1=now.strftime(fmt1)
-                        user_date_time=datetime.datetime.strptime(date_time1, fmt1)
-                        add_answer_id.date_of_next_rep=user_date_time
-
-
-                elif qusetion_rep == "50":
-                    if value == "-":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=60) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == "+":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=60) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == " ":
-                        fmt1= "%Y-%m-%d %H:%M:%S"
-                        now = datetime.datetime.now() + datetime.timedelta(days=60)
-                        date_time1=now.strftime(fmt1)
-                        user_date_time=datetime.datetime.strptime(date_time1, fmt1)
-                        add_answer_id.date_of_next_rep=user_date_time
-
-
-                elif qusetion_rep == "75":
-                    if value == "-":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=90) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == "+":
-                        fmt5 = "%Y-%m-%d %H:%M:%S"
-                        time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                        datess=datetime.date.today() + datetime.timedelta(days=90) 
-                        datess=str(datess)
-                        time=str(time)
-                        user_date=datess+" "+time 
-                        user_date_time=datetime.datetime.strptime(user_date , fmt5)
-                        add_answer_id.date_of_next_rep=user_date_time
-                    if value == " ":
-                        fmt1= "%Y-%m-%d %H:%M:%S"
-                        now = datetime.datetime.now() + datetime.timedelta(days=90)
-                        date_time1=now.strftime(fmt1)
-                        user_date_time=datetime.datetime.strptime(date_time1, fmt1)
-                        add_answer_id.date_of_next_rep=user_date_time
-
-
-            if add_answer_id.correct_answer > 4:
+        
+        mode=Quiz.objects.get(title=self.quiz)
+        mode=mode.exam_mode
+        if mode == False:
+            add_answer_id = UQuestion.objects.get(quiz=self.quiz, user=self.user,questions=question.id)
+            if check_answer == False:
+                fmt2 = "%z"
+                tz = self.user
+                tz1=tz.timezone1
+                tz2 = pytz.timezone(str(tz1))
+                user_time = datetime.datetime.now(tz2)
+                user=user_time.strftime(fmt2)
+                user_hour1=user[1]
+                user_hour2=user[2]
+                if user_hour1 != "0":
+                    hours=user[1:3]
+                else:
+                    hours=user[2]
+                user_time=user[3:5]
+                minute=user[3]
+                if minute != "0":
+                    minutes=user[3:5]
+                else:
+                    minutes=user[4]
+                value=user[0:1]
+                value=str(value)
                 if value == "-":
-                    time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
-                    add_answer_id.date_of_next_rep = time + datetime.timedelta(days=365)
+                    fmt5 = "%Y-%m-%d %H:%M:%S"
+                    time=timedelta(hours=int(hours),minutes=int(minutes))
+                    datess=datetime.date.today() 
+                    datess=str(datess)
+                    time=str(time)
+                    user_date=datess+" "+time 
+                    user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                    add_answer_id.date_of_next_rep=user_date_time
+                    
                 if value == "+":
-                    time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
-                    add_answer_id.date_of_next_rep = time + datetime.timedelta(days=365)
+                    fmt5 = "%Y-%m-%d %H:%M:%S"
+                    time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                    datess=datetime.date.today() 
+                    datess=str(datess)
+                    time=str(time)
+                    user_date=datess+" "+time 
+                    user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                    add_answer_id.date_of_next_rep=user_date_time
+                if value == " ":
+                    fmt1= "%Y-%m-%d %H:%M:%S"
+                    now = datetime.datetime.now()
+                    date_time1=now.strftime(fmt1)
+                    user_date_time=datetime.datetime.strptime(date_time1, fmt1)
+                add_answer_id.wrong_answer_date = user_date_time
+                add_answer_id.question_taken_date= user_date_time
+                add_answer_id.today_wrong_answer =1
+
+
+            if check_answer == True:
+                fmt = "%Y-%m-%d %H:%M:%S"
+                now = datetime.datetime.now()
+                wrong_answer=now.strftime(fmt)
+                wrong_answer_table=add_answer_id.wrong_answer_date
+                # wrong_answers=datetime.datetime.strptime(wrong_answer_table)
+                if wrong_answer_table < wrong_answer:
+                    add_answer_id.today_wrong_answer = 0            
+
+                qusetion_rep=PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.user)
+                qusetion_rep=qusetion_rep.repeat_questions
+
+                fmt2 = "%z"
+                tz = self.user
+                tz1=tz.timezone1
+                tz2 = pytz.timezone(str(tz1))
+                user_time = datetime.datetime.now(tz2)
+                user=user_time.strftime(fmt2)
+                user_hour1=user[1]
+                user_hour2=user[2]
+                if user_hour1 != "0":
+                    hours=user[1:3]
+                else:
+                    hours=user[2]
+                user_time=user[3:5]
+                minute=user[3]
+                if minute != "0":
+                    minutes=user[3:5]
+                else:
+                    minutes=user[4]
+                value=user[0:1]
+                value=str(value)
+                add_answer_id.correct_answer = add_answer_id.correct_answer + 1
+                if add_answer_id.correct_answer == 1:
+                    if qusetion_rep == "25":
+                        if value == "-":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=2) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                            
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
 
 
 
-            
+                        if value == "+":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=2) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
 
-        #attep 1 
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
 
- 
-        add_answer_id.save()
+                        if value == " ":
+                            fmt1= "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now() + datetime.timedelta(days=2)
+                            date_time1=now.strftime(fmt1)
+                            user_date_time=datetime.datetime.strptime(date_time1, fmt1)
+                            add_answer_id.date_of_next_rep=user_date_time
+
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                    elif qusetion_rep == "50":
+                        if value == "-":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=3) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == "+":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=3) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                        
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == " ":
+                            fmt1= "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now() + datetime.timedelta(days=3)
+                            date_time1=now.strftime(fmt1)
+                            user_date_time=datetime.datetime.strptime(date_time1, fmt1)
+                            add_answer_id.date_of_next_rep=user_date_time
+
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                    elif qusetion_rep == "75":
+                        if value == "-":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=4) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                        
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == "+":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=4) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                        
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == " ":
+                            fmt1= "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now() + datetime.timedelta(days=4)
+                            date_time1=now.strftime(fmt1)
+                            user_date_time=datetime.datetime.strptime(date_time1, fmt1)
+                            add_answer_id.date_of_next_rep=user_date_time
+
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                if add_answer_id.correct_answer == 2:
+                    if qusetion_rep == "25":
+                        if value == "-":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=5) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                        
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == "+":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=5) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                        
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == " ":
+                            fmt1= "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now() + datetime.timedelta(days=5)
+                            date_time1=now.strftime(fmt1)
+                            user_date_time=datetime.datetime.strptime(date_time1, fmt1)
+                            add_answer_id.date_of_next_rep=user_date_time
+
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                    elif qusetion_rep == "50":
+                        if value == "-":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=7) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                        
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == "+":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=7) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                        
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == " ":
+                            fmt1= "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now() + datetime.timedelta(days=7)
+                            date_time1=now.strftime(fmt1)
+                            user_date_time=datetime.datetime.strptime(date_time1, fmt1)
+                            add_answer_id.date_of_next_rep=user_date_time
+
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                    elif qusetion_rep == "75":
+                        if value == "-":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=10) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                        
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == "+":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=10) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                        
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == " ":
+                            fmt1= "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now() + datetime.timedelta(days=10)
+                            date_time1=now.strftime(fmt1)
+                            user_date_time=datetime.datetime.strptime(date_time1, fmt1)
+                            add_answer_id.date_of_next_rep=user_date_time
+
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                if add_answer_id.correct_answer == 3:
+                    if qusetion_rep == "25":
+                        if value == "-":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=14) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                        
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == "+":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=14) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                        
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == " ":
+                            fmt1= "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now() + datetime.timedelta(days=14)
+                            date_time1=now.strftime(fmt1)
+                            user_date_time=datetime.datetime.strptime(date_time1, fmt1)
+                            add_answer_id.date_of_next_rep=user_date_time
+
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                    elif qusetion_rep == "50":
+                        if value == "-":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=21) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                        
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == "+":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=21) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                        
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == " ":
+                            fmt1= "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now() + datetime.timedelta(days=21)
+                            date_time1=now.strftime(fmt1)
+                            user_date_time=datetime.datetime.strptime(date_time1, fmt1)
+                            add_answer_id.date_of_next_rep=user_date_time
+
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
 
 
+                    elif qusetion_rep == "75":
+                        if value == "-":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=30) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                        
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == "+":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=30) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                        
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == " ":
+                            fmt1= "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now() + datetime.timedelta(days=30)
+                            date_time1=now.strftime(fmt1)
+                            user_date_time=datetime.datetime.strptime(date_time1, fmt1)
+                            add_answer_id.date_of_next_rep=user_date_time
+
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                if add_answer_id.correct_answer == 4:
+                    if qusetion_rep == "25":
+                        if value == "-":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=30) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == "+":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=30) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == " ":
+                            fmt1= "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now() + datetime.timedelta(days=30)
+                            date_time1=now.strftime(fmt1)
+                            user_date_time=datetime.datetime.strptime(date_time1, fmt1)
+                            add_answer_id.date_of_next_rep=user_date_time
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+
+                    elif qusetion_rep == "50":
+                        if value == "-":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=60) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == "+":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=60) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == " ":
+                            fmt1= "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now() + datetime.timedelta(days=60)
+                            date_time1=now.strftime(fmt1)
+                            user_date_time=datetime.datetime.strptime(date_time1, fmt1)
+                            add_answer_id.date_of_next_rep=user_date_time
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                    elif qusetion_rep == "75":
+                        if value == "-":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=90) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                        if value == "+":
+                            fmt5 = "%Y-%m-%d %H:%M:%S"
+                            time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=90) 
+                            datess=str(datess)
+                            time=str(time)
+                            user_date=datess+" "+time 
+                            user_date_time=datetime.datetime.strptime(user_date , fmt5)
+                            add_answer_id.date_of_next_rep=user_date_time
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+                            
+                        if value == " ":
+                            fmt1= "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now() + datetime.timedelta(days=90)
+                            date_time1=now.strftime(fmt1)
+                            user_date_time=datetime.datetime.strptime(date_time1, fmt1)
+                            add_answer_id.date_of_next_rep=user_date_time
+                            fmt = "%Y-%m-%d %H:%M:%S"
+                            now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
+                            yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
+                            add_answer_id.wrong_answer_date = yesterday
+
+                if add_answer_id.correct_answer > 4:
+                    if value == "-":
+                        time = datetime.datetime.now() - timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=365)
+                    if value == "+":
+                        time = datetime.datetime.now() + timedelta(hours=int(hours),minutes=int(minutes))
+                        add_answer_id.date_of_next_rep = time + datetime.timedelta(days=365)
+
+            add_answer_id.save() 
+        
     def get_questions(self, with_answers=False):
         question_ids = self._question_ids()
         questions = sorted(

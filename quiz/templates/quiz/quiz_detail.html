@@ -11,14 +11,15 @@
   <div class="container-login100"  style="background-image: url('{% static 'images/img-01.jpg' %}');">
     <div class="wrap-login100 p-t-30 p-b-10">
 
-      <span class="login100-form-title p-t-5 p-b-1"> {{ quiz.title }}</span>
+      <span class="login100-form-title p-t-5 p-b-1"> {{ quiz.title }} </span>  
       <br>
+      <div>Exam Mode  = {{exam_mode}}  <br>Random Mode= {{random_mode}} </div>
       <span class="login100-form-title p-t-5 p-b-1"> {{ quiz.description }} </span>
       <br>
       {% if quiz.single_attempt %}
         <span class="login100-form-title p-t-5 p-b-1"> {% trans "You will only get one attempt at this exam !" %}</span>
       {% else %}
-        <span class="login100-form-title p-t-5 p-b-1"> {% trans "You can attemt this e-learning multiple times " %}</span>
+        <span class="login100-form-title p-t-5 p-b-1"> {% trans "You can attemt this e-learning multiple times" %}</span>
       {% endif %}
 
       <br>

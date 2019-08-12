@@ -10,8 +10,8 @@
 <div class="limiter">
   <div class="container-login100"  style="background-image: url('{% static 'images/img-01.jpg' %}');">
     <div class="wrap-login100 p-t-30 p-b-10" >
-		<span class="login100-form-title p-t-5 p-b-1">Congratulations, you have taken all the Questions already. Please come back tomorrow to repeat!.
-      	
+		<span class="login100-form-title p-t-5 p-b-1">{{content}}
+		      	
 </span>
 	<br>
       <a href= "{% url 'quiz_index' %}" class="login100-form-btn" >Return to the list of e-learnings</a>
@@ -19,4 +19,4 @@
     </div>
   </div>
 </div>
-{% endblock %}
+{% endblock %} 

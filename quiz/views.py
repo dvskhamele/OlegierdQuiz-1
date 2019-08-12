@@ -62,6 +62,9 @@ class QuizDetailView(DetailView):
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         quiz=Quiz.objects.get(url=self.kwargs['slug'])
+        mode=Quiz.objects.get(title=quiz)
+        exam_modes=mode.exam_mode
+        random_modes=mode.random_order
         try:
             p=PersonalizedQuiz.objects.get(quiz=quiz, user=request.user)
         except PersonalizedQuiz.DoesNotExist:
@@ -77,6 +80,15 @@ class QuizDetailView(DetailView):
             raise PermissionDenied
 
         context = self.get_context_data(object=self.object)
+        if exam_modes == False:
+            context["exam_mode"] = "OFF"
+        else:
+            context["exam_mode"] = "ON"
+        if random_modes == False:
+            context["random_mode"] = "OFF"
+        else:
+            context["random_mode"] = "ON"
+
         return self.render_to_response(context)
 
 class CategoriesListView(ListView):
@@ -259,7 +271,8 @@ class QuizTake(FormView):
                 #     corection=peronalized_max_questions.correction
             except NameError:
                 #return redirect(request, 'quiz/complete_attempt_questions.html')
-                return render(self.request, 'quiz/complete_attempt_questions.html')
+                content ="Congratulations, you have taken all the Questions already. Please come back tomorrow to repeat!."
+                return render(self.request, 'quiz/complete_attempt_questions.html',{'content':content})
         else:
             self.sitting = self.anon_load_sitting()
 
@@ -312,12 +325,83 @@ class QuizTake(FormView):
     
     def get_context_data(self, **kwargs):
         context = super(QuizTake, self).get_context_data(**kwargs)
+        mode=Quiz.objects.get(title=self.quiz)
+        mode=mode.exam_mode
         peronalized_max_questions = PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.request.user)
-        modify = UQuestion.objects.get(quiz=self.quiz, user=self.request.user,questions=self.question)
-        new_questions=modify.attempt_question
-        second_attempt_day=modify.question_taken_date
-        next_rep_date=modify.date_of_next_rep
-        if new_questions == 0:
+        if mode == False:
+            #peronalized_max_questions = PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.request.user)
+            modify = UQuestion.objects.get(quiz=self.quiz, user=self.request.user,questions=self.question)
+            new_questions=modify.attempt_question
+            second_attempt_day=modify.question_taken_date
+            next_rep_date=modify.date_of_next_rep
+            wrong_answer=modify.wrong_answer_date
+            if new_questions == 0:
+                new_question=peronalized_max_questions.total_new_question
+                new_questi=peronalized_max_questions.question_attemp
+                context["new_question"] = new_question
+                context["new_questi"] = new_questi
+                if new_question == "1":
+                    context["question_info"] = "New Question"
+                else:
+                    context["question_info"] = "New Questions"
+            
+            else:
+                fmt = "%Y-%m-%d"
+                fmt1 = "%Y-%m-%d %H:%M:%S"
+                now = datetime.datetime.now() 
+                date=now.strftime(fmt)
+                now1 = datetime.datetime.now() 
+                date1=now1.strftime(fmt1)
+                date1=datetime.datetime.strptime(date1, "%Y-%m-%d %H:%M:%S")
+                rep=second_attempt_day[0:10]
+                timesss=next_rep_date[0:19]
+                wrong_answers=wrong_answer[0:19]
+                timesss=datetime.datetime.strptime(timesss, "%Y-%m-%d %H:%M:%S")
+                wrong_answers=datetime.datetime.strptime(wrong_answers, "%Y-%m-%d %H:%M:%S")
+                question_att_date=rep
+                
+                #if timesss < date1:
+                #    if modify.correct_answer == 0:
+                if new_questions > 0:
+                        if modify.today_wrong_answer == 1:
+                            corection=peronalized_max_questions.correction
+                            peronalized_max_questions.question_repe=0
+                            peronalized_max_questions.total_repeat=corection
+                            peronalized_max_questions.rember_questions=0
+                            peronalized_max_questions.save()
+
+                        if wrong_answers == timesss:
+                            if timesss >= date1:
+                                corection=peronalized_max_questions.correction
+                                context["corection"] = corection
+                                if corection == 1:
+                                    context["question_info"] = "Correction"
+                                    context["question_info1"] = "Question"
+                                else:
+                                    context["question_info"] = "Corrections"
+                                    context["question_info1"] = "Questions"
+               
+               # if question_att_date == date:
+                            else:
+                                new_questi=peronalized_max_questions.question_repe+1
+                                context["new_questi"] = new_questi
+                                repeat_question=peronalized_max_questions.total_repeat
+                                context["new_question"] = repeat_question
+                                if repeat_question == "1":
+                                    context["question_info"] = "Repetation"
+                                else: 
+                                    context["question_info"] = "Repetations"
+                        else:
+                 
+                            new_questi=peronalized_max_questions.question_repe+1
+                            context["new_questi"] = new_questi
+                            repeat_question=peronalized_max_questions.total_repeat
+                            context["new_question"] = repeat_question
+                            if repeat_question == "1":
+                                context["question_info"] = "Repetation"
+                            else: 
+                                context["question_info"] = "12Repetations"
+        else:
             new_question=peronalized_max_questions.total_new_question
             new_questi=peronalized_max_questions.question_attemp
             context["new_question"] = new_question
@@ -325,45 +409,7 @@ class QuizTake(FormView):
             if new_question == "1":
                 context["question_info"] = "New Question"
             else:
-                context["question_info"] = "New Questions"
-        
-        else:
-            fmt = "%Y-%m-%d"
-            fmt1 = "%H:%M:%S"
-            now = datetime.datetime.now() 
-            date=now.strftime(fmt)
-            date1=now.strftime(fmt1)
-            rep=second_attempt_day[0:10]
-            timesss=second_attempt_day[12:19]
-            question_att_date=rep
-            if question_att_date < date:
-                if modify.correct_answer == 0:
-                    if peronalized_max_questions.rember_questions == 1:
-                        corection=peronalized_max_questions.correction
-                        peronalized_max_questions.question_repe=0
-                        peronalized_max_questions.total_repeat=corection
-                        peronalized_max_questions.rember_questions=0
-                        peronalized_max_questions.save()
-
-            if question_att_date == date:
-                corection=peronalized_max_questions.correction
-                context["corection"] = corection
-                if corection == 1:
-                    context["question_info"] = "Correction"
-                    context["question_info1"] = "Question"
-                else:
-                    context["question_info"] = "Corrections"
-                    context["question_info1"] = "Questions"
-            else:
-                new_questi=peronalized_max_questions.question_repe+1
-                context["new_questi"] = new_questi
-                repeat_question=peronalized_max_questions.total_repeat
-                context["new_question"] = repeat_question
-                if repeat_question == "1":
-                    context["question_info"] = "Repetation"
-                else: 
-                    context["question_info"] = "Repetations"
-                
+                context["question_info"] = "New Questions"              
 
         context["remove_question"] = 0
         #context["undo_question"] =0
@@ -396,10 +442,12 @@ class QuizTake(FormView):
 
 
 
-
-        forget_forever=modify.correct_answer
-        if forget_forever >=2:
-            context["remove_question"] = 1
+        mode=Quiz.objects.get(title=self.quiz)
+        mode=mode.exam_mode
+        if mode == False:
+            forget_forever=modify.correct_answer
+            if forget_forever >=2:
+                context["remove_question"] = 1
 
         if peronalized_max_questions.rember == "1":
             context["remove_question"] = 0
@@ -528,8 +576,6 @@ class QuizTake(FormView):
         self.sitting.remove_first_question()
             
     def final_result_user(self):
-        mode=Quiz.objects.get(title=self.quiz)
-        mode=mode.exam_mode
         results = {
             'quiz': self.quiz,
             'score': self.sitting.get_current_score,
@@ -550,14 +596,14 @@ class QuizTake(FormView):
         if self.quiz.exam_paper is False:
             self.sitting.delete()
 
-
-        if mode == True :
-            return render(self.request, self.result_template_name, results)
-        else:
-            progress_report=progress_reports(self.request)
-            context={'progress_report':progress_report}
-        return render(self.request, self.templates_name,context)
-
+        return render(self.request, self.result_template_name, results)
+        # # else:
+        # progress_report=progress_reports(self.request)
+        # context={'progress_report':progress_report}
+        #return render(self.request, self.templates_name,context)
+        
+        # content ="Congratulations, you have taken all the Questions already. Please come back tomorrow to repeat!."
+        # return render(self.request, 'quiz/complete_attempt_questions.html',{'content':content})
 
     def anon_load_sitting(self):
         if self.quiz.single_attempt is True:
