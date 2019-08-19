@@ -14,8 +14,7 @@ from rest_framework.decorators import api_view
 from django.http import HttpResponse,  Http404
 from multichoice.models import MCQuestion,Answer
 from django.shortcuts import redirect
-#from datetime import datetime
-from pytz import timezone
+from pytz import timezone 
 
 class TestingView(TemplateView):
     def get(self, request, quiz_slug, *args, **kwargs):
@@ -45,7 +44,6 @@ class SittingFilterTitleMixin(object):
         quiz_filter = self.request.GET.get('quiz_filter')
         if quiz_filter:
             queryset = queryset.filter(quiz__title__icontains=quiz_filter)
-
         return queryset
  
 class QuizListView(ListView):
@@ -236,7 +234,6 @@ class QuizMarkingDetail(QuizMarkerMixin, DetailView):
 
 class QuizTake(FormView):
     form_class = QuestionForm 
-    #template_name = 'question.html'
     template_name = 'previous_question.html'
     previous_template_name = 'previous_question.html'
     result_template_name = 'result.html'
@@ -339,7 +336,14 @@ class QuizTake(FormView):
                 new_question=peronalized_max_questions.total_new_question
                 new_questi=peronalized_max_questions.question_attemp
                 context["new_question"] = new_question
+                if new_questi == 0:
+                    new_questi=new_questi+1
+                    peronalized_max_questions.question_attemp=new_questi
+                    peronalized_max_questions.save()
+                else:
+                    new_questi=new_questi
                 context["new_questi"] = new_questi
+                
                 if new_question == "1":
                     context["question_info"] = "New Question"
                 else:
@@ -363,15 +367,27 @@ class QuizTake(FormView):
                 #if timesss < date1:
                 #    if modify.correct_answer == 0:
                 if new_questions > 0:
-                        if modify.today_wrong_answer == 1:
-                            corection=peronalized_max_questions.correction
-                            peronalized_max_questions.question_repe=0
-                            peronalized_max_questions.total_repeat=corection
-                            peronalized_max_questions.rember_questions=0
-                            peronalized_max_questions.save()
+                        #if modify.today_wrong_answer == 1:
+                        # if wrong_answers == timesss:
+                        #     if modify.today_wrong_answer == 1:
+                        #         #corection=peronalized_max_questions.correction
+                                #peronalized_max_questions.question_repe=0
+                                #peronalized_max_questions.total_repeat=corection
+                                #peronalized_max_questions.rember_questions=0
+                               
+                                #peronalized_max_questions.save()
+
+                        if timesss < date1:
+                            if peronalized_max_questions.tempory_questions == 1 :
+                                peronalized_max_questions.question_repe=0
+                                corection=peronalized_max_questions.correction
+                                peronalized_max_questions.tempory_questions=corection
+                                peronalized_max_questions.save()
 
                         if wrong_answers == timesss:
                             if timesss >= date1:
+                                peronalized_max_questions.tempory_questions=1
+                                peronalized_max_questions.save()
                                 corection=peronalized_max_questions.correction
                                 context["corection"] = corection
                                 if corection == 1:
@@ -381,13 +397,12 @@ class QuizTake(FormView):
                                     context["question_info"] = "Corrections"
                                     context["question_info1"] = "Questions"
                
-               # if question_att_date == date:
                             else:
                                 new_questi=peronalized_max_questions.question_repe+1
-                                context["new_questi"] = new_questi
-                                repeat_question=peronalized_max_questions.total_repeat
-                                context["new_question"] = repeat_question
-                                if repeat_question == "1":
+                                context["new_questi"] = new_questi 
+                                corection=peronalized_max_questions.tempory_questions
+                                context["new_question"] = corection
+                                if corection == "1":
                                     context["question_info"] = "Repetation"
                                 else: 
                                     context["question_info"] = "Repetations"
@@ -400,7 +415,7 @@ class QuizTake(FormView):
                             if repeat_question == "1":
                                 context["question_info"] = "Repetation"
                             else: 
-                                context["question_info"] = "12Repetations"
+                                context["question_info"] = "Repetations"
         else:
             new_question=peronalized_max_questions.total_new_question
             new_questi=peronalized_max_questions.question_attemp
@@ -529,7 +544,7 @@ class QuizTake(FormView):
         if hasattr(self, 'progress'):
             context['progress'] = self.progress
             if "hidde_questions" in self.request.POST:
-            #if self.request.POST :
+            # if self.request.POST :
                 value=self.request.POST['hidde_questions']
                 if value != 1:
                     context["to_display_question"] = 0
@@ -576,6 +591,8 @@ class QuizTake(FormView):
         self.sitting.remove_first_question()
             
     def final_result_user(self):
+        mode=Quiz.objects.get(title=self.quiz)
+        mode=mode.exam_mode
         results = {
             'quiz': self.quiz,
             'score': self.sitting.get_current_score,
@@ -595,15 +612,13 @@ class QuizTake(FormView):
 
         if self.quiz.exam_paper is False:
             self.sitting.delete()
-
-        return render(self.request, self.result_template_name, results)
-        # # else:
-        # progress_report=progress_reports(self.request)
-        # context={'progress_report':progress_report}
-        #return render(self.request, self.templates_name,context)
-        
-        # content ="Congratulations, you have taken all the Questions already. Please come back tomorrow to repeat!."
-        # return render(self.request, 'quiz/complete_attempt_questions.html',{'content':content})
+        if mode == True:
+            return render(self.request, self.result_template_name, results)
+        else:
+            progress_report=progress_reports(self.request)
+            context={'progress_report':progress_report}
+            return render(self.request, self.templates_name,context)
+            
 
     def anon_load_sitting(self):
         if self.quiz.single_attempt is True:
@@ -793,16 +808,5 @@ class quizrep(TemplateView):
         if pq.repeat_questions == "75":
             repeat_questions="High"
         return render(request, 'quiz/quiz_repeat_questions.html', {'quiz':quiz,'repeat_questions':repeat_questions}) 
-
-
-
-
-
-
-
-
-
-
-
 
 

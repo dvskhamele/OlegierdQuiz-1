@@ -13,12 +13,12 @@ class QuizResource(resources.ModelResource):
         for data in dataset:
             lst = list(data)
 
-            
+             
             data = tuple(lst)
             self.using_transactions = True
         del dataset
 
-   
+    
     class Meta:
         model = Answer 
         fields = ('id',) 

@@ -12,9 +12,8 @@
   <div class="container-login100"  style="background-image: url('{% static 'images/img-01.jpg' %}');">
     <div class="wrap-login100 p-t-30 p-b-10">
     <span class="login100-form-title p-t-5 p-b-1"> Quiz Summary </span>
-  {% if progress_report %}
-  
-      		<table class="table table-bordered table-striped">
+          {% if progress_report %}
+          <table class="table table-bordered table-striped">
 
       		  <thead>
       			<tr>
@@ -25,7 +24,7 @@
       		  {% for c in progress_report %}
       		  <tbody>
 
-        		<tr>
+        		<tr> 
    
 
       			  <td>
