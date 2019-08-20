@@ -15,6 +15,9 @@ from django.http import HttpResponse,  Http404
 from multichoice.models import MCQuestion,Answer
 from django.shortcuts import redirect
 from pytz import timezone 
+from django.contrib.auth.models import User
+from django.core.mail import send_mail
+from django.conf import settings
 
 class TestingView(TemplateView):
     def get(self, request, quiz_slug, *args, **kwargs):
@@ -51,7 +54,14 @@ class QuizListView(ListView):
 
     def get_queryset(self):
         queryset = super(QuizListView, self).get_queryset()
-        return queryset.filter(draft=False)
+        return queryset.filter(exam_mode=False)
+
+class ExamListView(ListView):
+    model = Quiz
+
+    def get_queryset(self):
+        queryset = super(ExamListView, self).get_queryset()
+        return queryset.filter(exam_mode=True)
 
 
 class QuizDetailView(DetailView):
@@ -413,9 +423,9 @@ class QuizTake(FormView):
                             repeat_question=peronalized_max_questions.total_repeat
                             context["new_question"] = repeat_question
                             if repeat_question == "1":
-                                context["question_info"] = "Repetation"
+                                context["question_info"] = "21Repetation"
                             else: 
-                                context["question_info"] = "Repetations"
+                                context["question_info"] = "21Repetations"
         else:
             new_question=peronalized_max_questions.total_new_question
             new_questi=peronalized_max_questions.question_attemp
@@ -589,9 +599,10 @@ class QuizTake(FormView):
 
         self.sitting.add_user_answer(self.question, guess)
         self.sitting.remove_first_question()
-            
+ 
+    
     def final_result_user(self):
-        mode=Quiz.objects.get(title=self.quiz)
+        mode=Quiz.objects.get(title=self.quiz) 
         mode=mode.exam_mode
         results = {
             'quiz': self.quiz,
@@ -613,6 +624,22 @@ class QuizTake(FormView):
         if self.quiz.exam_paper is False:
             self.sitting.delete()
         if mode == True:
+            
+            subject = 'Thank you for registering to our site'
+            #context= results
+            context = "You answered "+" "+ str(self.sitting.get_current_score) +" "+"questions correctly out of"+" "+str(self.sitting.get_max_score)+" "+"giving you"+" "+str(self.sitting.get_percent_correct)+" "+"percent correct"
+            print("context",context)
+            context=str(context)
+            message =  context 
+            email_from = settings.EMAIL_HOST_USER
+            recipient_list = ['prashantnajan8965@gmail.com',]
+            
+            tz=User
+            tz1=tz.email
+            print("email_id",tz1)
+            
+            send_mail( subject, message, email_from, recipient_list )
+            print("results",results)
             return render(self.request, self.result_template_name, results)
         else:
             progress_report=progress_reports(self.request)

@@ -11,7 +11,7 @@ from quiz.models import *
 from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-
+ 
 from .forms import *
 
 from rest_framework.authentication import TokenAuthentication

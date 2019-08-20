@@ -62,6 +62,20 @@
      <!-- {{ new_questi }}  of  {{new_question}} | -->  
      
     <!-- {% endif %} -->
+    <!-- <div id="count">Start time </div> -->
+    <script>
+    var count = 30;
+    var interval = setInterval(function(){
+    document.getElementById('count').innerHTML=count + "  sec left";
+    count--;
+    if (count === 0){
+    clearInterval(interval);
+    document.getElementById('count').innerHTML='Done';
+    // or...
+    alert("You're out of time!");
+    }
+    }, 1000);
+    </script>
     {% if corection %}
       {{ corection }} {{ question_info1 }} Left | {{ question_info }}
     {% else %}

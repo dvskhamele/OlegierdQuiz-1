@@ -13,11 +13,11 @@ from django.utils.timezone import now
 from django.utils.encoding import python_2_unicode_compatible
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
-import pytz
+import pytz 
 
 from timezone_field import TimeZoneField
 
-from model_utils.managers import InheritanceManager
+from model_utils.managers import InheritanceManager 
  
 import random 
 import datetime
@@ -444,9 +444,7 @@ class SittingManager(models.Manager):
 			date=now.strftime(fmt)
 			if question_rep_date == None:
 				question_rep_date = date
-			#date=datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
-			#question_rep_date=datetime.datetime.strptime(question_rep_date, fmt)
-			if question_correct == 0 and q.attempt_question == 1:
+			if question_correct == 0 and q.attempt_question >= 1:
 				que_attemps.append(question_lists)
 			if question_correct > 0 and question_correct < 5:
 				check_question.append(question_lists)
@@ -585,6 +583,7 @@ class SittingManager(models.Manager):
 		else:
 			q1.total_new_question=max_question
 			q1.save()
+			print("question_setss",question_setss)	
 			question_set=question_setss
 
 
@@ -700,16 +699,18 @@ class Sitting(models.Model):
 			pre_q=PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.user)
 		except PersonalizedQuiz.DoesNotExist:
 			pre_q=PersonalizedQuiz.objects.create(quiz=self.quiz, user=self.user)
-		
-		times=pre_q.session_time
-		times=datetime.datetime.strptime(times, "%Y-%m-%d %H:%M:%S")
-		now = datetime.datetime.now()
-		date_times=now.strftime("%Y-%m-%d %H:%M:%S")
-		date_times=datetime.datetime.strptime(date_times, "%Y-%m-%d %H:%M:%S")
-		if date_times >= times:
-			self.complete = True
-			self.end = datetime.datetime.now()
-			self.save()
+		mode=Quiz.objects.get(title=self.quiz)
+		mode=mode.exam_mode
+		if mode == False:
+			times=pre_q.session_time
+			times=datetime.datetime.strptime(times, "%Y-%m-%d %H:%M:%S")
+			now = datetime.datetime.now()
+			date_times=now.strftime("%Y-%m-%d %H:%M:%S")
+			date_times=datetime.datetime.strptime(date_times, "%Y-%m-%d %H:%M:%S")
+			if date_times >= times:
+				self.complete = True
+				self.end = datetime.datetime.now()
+				self.save()
 		first, _ = self.question_list.split(',', 1)
 		
 		question_id = int(first)
@@ -766,12 +767,13 @@ class Sitting(models.Model):
 		
 		mode=Quiz.objects.get(title=self.quiz)
 		mode=mode.exam_mode
-		times=pre_q.session_time
-		times=datetime.datetime.strptime(times, "%Y-%m-%d %H:%M:%S")
-		now = datetime.datetime.now()
-		date_times=now.strftime("%Y-%m-%d %H:%M:%S")
-		date_times=datetime.datetime.strptime(date_times, "%Y-%m-%d %H:%M:%S")
 		if mode == False:
+			times=pre_q.session_time
+			times=datetime.datetime.strptime(times, "%Y-%m-%d %H:%M:%S")
+			now = datetime.datetime.now()
+			date_times=now.strftime("%Y-%m-%d %H:%M:%S")
+			date_times=datetime.datetime.strptime(date_times, "%Y-%m-%d %H:%M:%S")
+			
 			que_id = self.question_list.split(",")[0]
 			# if date_times >= times:
 			# 	UQuestion.objects.get(quiz=self.quiz, user=self.user,questions=que_id).delete()
@@ -802,66 +804,71 @@ class Sitting(models.Model):
 			pre_qu.question_attemp=pre_qu.question_attemp+1
 			pre_qu.save()
 		
-		times=pre_q.session_time
-		times=datetime.datetime.strptime(times, "%Y-%m-%d %H:%M:%S")
-		now = datetime.datetime.now()
-		date_times=now.strftime("%Y-%m-%d %H:%M:%S")
-		date_times=datetime.datetime.strptime(date_times, "%Y-%m-%d %H:%M:%S")
-		if date_times >= times:
-			self.complete = True
-			self.end = datetime.datetime.now()
-			self.save()
-			# print("self.question_list",self.question_list)
-			# self.question_list= []
-			# self.save()
-			
-		else:
-			_, others = self.question_list.split(',', 1) 
-			mode=Quiz.objects.get(title=self.quiz)
-			mode=mode.exam_mode
-			if mode == False:
-				att_que = UQuestion.objects.get(quiz=self.quiz, user=self.user, questions__id=_)
-				rep_question = att_que.date_of_next_rep
-				rep=rep_question[0:10]
-				attemp_q=att_que.question_taken_date
-				attemp_question=attemp_q[0:10]
-				fmt1= "%Y-%m-%d"
-				question_att=datetime.datetime.strptime(attemp_question, fmt1)
-				question_rep_date=datetime.datetime.strptime(rep, fmt1)
+		mode=Quiz.objects.get(title=self.quiz)
+		mode=mode.exam_mode
+		if mode == False:
+			times=pre_q.session_time
+			times=datetime.datetime.strptime(times, "%Y-%m-%d %H:%M:%S")
+			now = datetime.datetime.now()
+			date_times=now.strftime("%Y-%m-%d %H:%M:%S")
+			date_times=datetime.datetime.strptime(date_times, "%Y-%m-%d %H:%M:%S")
+			if date_times >= times:
+				self.complete = True
+				self.end = datetime.datetime.now()
+				self.save()
+				# print("self.question_list",self.question_list)
+				# self.question_list= []
+				# self.save()
 				
-				if question_rep_date <= question_att:
-					
-					if len(others) == 0:
-						others=_+","
-					elif others[len(others)-1] == ",":
-						others=others+ _ +","
-					self.question_list = others
-					corrections=self.question_list.count(",")
-					pre_q.correction=corrections
+		
+		_, others = self.question_list.split(',', 1) 
+		mode=Quiz.objects.get(title=self.quiz)
+		mode=mode.exam_mode
+		if mode == False:
+			att_que = UQuestion.objects.get(quiz=self.quiz, user=self.user, questions__id=_)
+			rep_question = att_que.date_of_next_rep
+			rep=rep_question[0:10]
+			attemp_q=att_que.question_taken_date
+			attemp_question=attemp_q[0:10]
+			fmt1= "%Y-%m-%d"
+			question_att=datetime.datetime.strptime(attemp_question, fmt1)
+			question_rep_date=datetime.datetime.strptime(rep, fmt1)
 			
-					self.save()
-					pre_q.save()
-					que_ids = self.question_list.split(",")[0]
-					
+			if question_rep_date <= question_att:
+				
+				if len(others) == 0:
+					others=_+","
+				elif others[len(others)-1] == ",":
+					others=others+ _ +","
+				self.question_list = others
+				corrections=self.question_list.count(",")
+				pre_q.correction=corrections
+		
+				self.save()
+				pre_q.save()
+				que_ids = self.question_list.split(",")[0]
+				
 
-				else:
-					self.question_list = others
-					self.save()   
-					corrections=self.question_list.count(",")
-					pre_q.correction=corrections
-					pre_q.save()
-					que_ids = self.question_list.split(",")[0]
-					# if wrong_answers < timesss:
-					#     pre_q.correction=corrections+1
-					#     print("pre_q.correction",pre_q.correction)
-					#     pre_q.save()
+			else:
+				self.question_list = others
+				self.save()   
+				print("self.question_list",self.question_list)
+				corrections=self.question_list.count(",")
+				pre_q.correction=corrections
+				pre_q.save()
+				que_ids = self.question_list.split(",")[0]
+				# if wrong_answers < timesss:
+				#     pre_q.correction=corrections+1
+				#     print("pre_q.correction",pre_q.correction)
+				#     pre_q.save()
 
 
 
 		if mode == True:
 			self.question_list = others
 			que_ids = self.question_list.split(",")[0]
-
+			self.save()
+			print("que_ids",que_ids)
 
 
 	def add_to_score(self, points):

@@ -18,8 +18,8 @@ from .resources import QuizResource ,QuizafterResource
 from django.contrib.auth.admin import UserAdmin
 
 class UserAdmin(UserAdmin):
-
-    add_form = CustomUserCreationForm   
+ 
+    add_form = CustomUserCreationForm    
     form = CustomUserChangeForm
     model = User
     list_display = ["email","username", "timezone1"]

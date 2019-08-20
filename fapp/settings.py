@@ -109,7 +109,12 @@ DATABASES = {
 # }
 
 AUTH_USER_MODEL = 'quiz.User'
-
+#EMAIL_BACKEND = ‘django.core.mail.backends.smtp.EmailBackend’
+EMAIL_USE_TLS = True  
+EMAIL_HOST = 'smtp.gmail.com'  
+EMAIL_PORT = 587  
+EMAIL_HOST_USER = 'prashant.pythonmate@gmail.com'  
+EMAIL_HOST_PASSWORD = 'PythonMate@123'  
 
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
@@ -163,3 +168,4 @@ DEBUG_TOOLBAR_CONFIG = {
 }
 
 DEBUG_TOOLBAR_PATCH_SETTINGS = False
+
