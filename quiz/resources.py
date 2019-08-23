@@ -66,8 +66,8 @@ class QuizafterResource(resources.ModelResource):
       
         skip_unchanged = True
         report_skipped = False
-        fields = ('id','quiz','category','sub_category','content','explanation')
-        export_order = ('id','quiz', 'category', 'sub_category', 'content','explanation')
+        fields = ('id','quiz','category','sub_category','figure','content','explanation')
+        export_order = ('id','quiz', 'category', 'sub_category','figure', 'content','explanation')
 
 
 

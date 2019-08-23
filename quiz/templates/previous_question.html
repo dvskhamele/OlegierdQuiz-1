@@ -62,9 +62,9 @@
      <!-- {{ new_questi }}  of  {{new_question}} | -->  
      
     <!-- {% endif %} -->
-    <!-- <div id="count">Start time </div> -->
+    <div id="count">Start time </div>
     <script>
-    var count = 30;
+    var count = {{timer}} ;
     var interval = setInterval(function(){
     document.getElementById('count').innerHTML=count + "  sec left";
     count--;

@@ -1,0 +1,160 @@
+{% extends "base2.html" %}
+{% load i18n%}
+{% load static %}
+
+{% load quiz_tags %}
+
+{% block title %} {{ quiz.title }} {% endblock %}
+{% block description %} {{ quiz.title }} - {{ quiz.description }} {% endblock %}
+
+{% block body %}
+	
+	<div class="limiter">
+		<div class="container-login100" style="background-image: url('{% static 'images/img-01.jpg' %}');">
+			<div class="wrap-login100 p-t-30 p-b-30">
+				
+					{% if  que_question.figure %}
+    				<div style="float: right;">
+						
+  						Slides {{ new_questi }}  of  {{new_question}}  
+					<form action="" method="POST">{% csrf_token %}	
+					</div>
+					<br>
+					<br>
+					<br>
+        			<img src="{{ question.figure.url }}" alt="{{ question.content }}" />
+    					
+					<br>
+					<br>
+					<br>
+					<br>
+					<br>
+      				<!-- <a href= ""  class="login100-form-btn" >Next Slides</a> -->
+      				<input type="hidden" value="{{ question.id }}" name="slide_id" >
+      				<input type="submit" value={% trans "Check" %} value="0" name="hidde_questions" class="login100-form-btn" >
+      				<br>
+      				<a href= "{% url 'quiz_index' %}" class="login100-form-btn" >Return to the list of e-learnings</a>
+    				<br>
+    				<a href= "{% url 'index' %}" class="login100-form-btn" >Return to home</a>
+      				<br>
+      				<a href= "{% url 'pagelogout' %}" class="login100-form-btn" >Logout</a>
+					{% else %}
+      					<!-- <a href= "" class="login100-form-btn" >Next Slides</a> -->
+						<div style="float: right;">
+							{% if corection %}
+      							{{ corection }} {{ question_info1 }} Left | {{ question_info }}
+    						{% else %}
+      							{{ new_questi }}  of  {{new_question}} | {{ question_info }}
+    						{% endif %}
+						</div>
+						<br>
+    					<br>
+    					<span class="login100-form-title p-t-1 p-b-45">{{ question.content }} </span>
+    					<br>
+
+    					<!-- {% if question.figure %}
+        					<img src="{{ question.figure.url }}" alt="{{ question.content }}" />
+    					{% endif %} -->
+     					<form action="" method="POST">{% csrf_token %}
+        				<input type=hidden name="question_id" value="{{ question.id }}">
+
+      					{% for answer in form.answers %}
+        				<h2> {{ answer }} </h2>
+        				<br>
+      					{% endfor %} 
+      					<br>
+      					<input type="submit" value={% trans "Check" %} value="0" name="hidde_questions" class="login100-form-btn" >
+    					<br>
+    					</form>
+    					{% if remove_question == 1 %}
+     					<br>
+        					<button type="button" class="login100-form-btn" data-toggle="modal" data-target="#myModal" data-title="Feedback">Forget Forever</button>
+
+    					{% endif %}
+    					
+    					{% if rember_que == 1 %}
+     					<form role="form" action="" method="POST">{% csrf_token %}
+      					<button type="submit" class="login100-form-btn" value=1 name="check">Forget Forever</button>
+    					<br>
+    					</form>
+  						{% endif %}
+  						{% if undo_question == 1 %}
+   						<form role="form" action="" method="POST">{% csrf_token %}
+         				<br>       
+        				<button type="submit" class="login100-form-btn" value=1 name="question_undo" >Undo Forget</button>
+  						</form>
+
+
+    					{% endif %}
+    					<br>
+    					<a href= "{% url 'quiz_index' %}" class="login100-form-btn" >Return to the list of e-learnings</a>
+    					<br>
+    					<a href= "{% url 'index' %}" class="login100-form-btn" >Return to home</a>
+      					<br>
+    					<a href= "{% url 'pagelogout' %}" class="login100-form-btn" >Logout</a>
+
+      				{% endif %}
+			</div>
+		</div>
+	</div>
+ <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+<script>
+$(document).ready(function(){
+    $("#myModal").on("show.bs.modal", function(event){
+        // Get the button that triggered the modal
+        var button = $(event.relatedTarget);
+
+        // Extract value from the custom data-* attribute
+        var titleData = button.data("title");
+        $(this).find(".modal-title").text(titleData);
+    });
+});
+</script>
+<style>
+    .bs-example{
+      margin: 20px;
+    }
+</style>
+<div class="bs-example">
+
+    <div id="myModal" class="modal fade" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form>
+                    <div class="modal-header">
+                       <strong> Question to forget forever </strong> 
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                </form>
+                    <div class="modal-body"
+                      style="padding: 11px;">
+ 
+
+                <label>
+                  Are you sure that you remember this question 
+                  perfectly and wish to remove it from 
+                  future repetitions?
+                   </label>
+                <form role="form" action="" method="POST">{% csrf_token %}
+                  <div  class="checkbox" style="margin-bottom: 5px; ">
+                    <label>
+                        <input type="checkbox" value=1 name="Rember" /> Don’t display this warning again
+                    </label>
+                  </div>
+                  <button type="submit" class="btn btn-success" value="1" name="checked" >Yes</button>
+                  <button  class="btn btn-default" data-dismiss="modal" type="button"    >No</button>
+                </form>
+                
+                
+            </div>
+            </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
