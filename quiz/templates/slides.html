@@ -13,7 +13,8 @@
 		<div class="container-login100" style="background-image: url('{% static 'images/img-01.jpg' %}');">
 			<div class="wrap-login100 p-t-30 p-b-30">
 				
-					{% if  que_question.figure %}
+		
+					{% if  question.figure %}
     				<div style="float: right;">
 						
   						Slides {{ new_questi }}  of  {{new_question}}  
@@ -31,6 +32,15 @@
 					<br>
       				<!-- <a href= ""  class="login100-form-btn" >Next Slides</a> -->
       				<input type="hidden" value="{{ question.id }}" name="slide_id" >
+<div style="display: none;">
+      					{% for answer in question.answer_set.all %}
+      					{% if answer.correct == True %}
+
+<input type="radio" name="answers" checked value="{{ answer.id }}" id="id_answers_0" required="">
+        				<h2> {{ answer }} </h2>
+      					{% endif %} 
+      					{% endfor %} 
+</div>
       				<input type="submit" value={% trans "Check" %} value="0" name="hidde_questions" class="login100-form-btn" >
       				<br>
       				<a href= "{% url 'quiz_index' %}" class="login100-form-btn" >Return to the list of e-learnings</a>

@@ -585,12 +585,6 @@ class SittingManager(models.Manager):
                     question_setss=tempory_questions_set[tempory_question:temp_questions]
                     
 
-            # mode=Quiz.objects.get(title=quiz)
-            # mode=mode.exam_mode
-            # mode1=Quiz.objects.get(title=quiz)
-            # modes=mode1.e_learning
-            # modess=mode1.exam_mode
-
             if modes == False and modess == False:
                 question_set=(list(set(question_set) - set(check_question)))
                 new_questions=max_question
@@ -878,6 +872,9 @@ class Sitting(models.Model):
             return
         try:
 
+            # questio = Question.objects.get(id=i)
+            # if questio.is_slides == True
+
             pre_q=PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.user)
         except PersonalizedQuiz.DoesNotExist:
             pre_q=PersonalizedQuiz.objects.create(quiz=self.quiz, user=self.user)
@@ -1059,12 +1056,11 @@ class Sitting(models.Model):
         modes=mode.e_learning
         modess=mode.exam_mode
         if modes == True and modess == False: 
-            guess=5
             current[question.id] = guess
-            print("current[question.id]",current[question.id])
             self.user_answers = json.dumps(current)
             self.save()
-            check_answer=True
+            answer_id=Answer.objects.get(id=current[question.id])
+            check_answer=answer_id.correct
         else:
             current[question.id] = guess
             self.user_answers = json.dumps(current)

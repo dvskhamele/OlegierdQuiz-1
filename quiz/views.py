@@ -566,19 +566,11 @@ class QuizTake(FormView):
     def form_valid_user(self, form):
         progress, c = Progress.objects.get_or_create(user=self.request.user)
         
-        print("progress")
-        mode=Quiz.objects.get(title=self.quiz)
-        modes=mode.e_learning
-        modess=mode.exam_mode
-        if modes == True and modess == False:
-            is_correct=True
-            print("is_correct",is_correct)
-            guess=1
-        else:
-            guess = form.cleaned_data['answers']
-            print("guesssssss",guess)
-            is_correct = self.question.check_if_correct(guess)
-        
+
+        guess = form.cleaned_data['answers']
+        print("guesssssss",guess)
+        is_correct = self.question.check_if_correct(guess)
+
         if is_correct is True:
             self.sitting.add_to_score(1)
             print("self.sitting.add_to_score(1)",self.sitting)
