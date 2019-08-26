@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 """Django's command-line utility for administrative tasks."""
+
+#find . -name migrations -exec rm -rf {} \;
+#find . -name __pycache__ -exec rm -rf {} \;
+
 import os
 import sys
 

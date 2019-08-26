@@ -19,15 +19,16 @@ from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.conf import settings
 
+# import pdb
+
 class TestingView(TemplateView):
     def get(self, request, quiz_slug, *args, **kwargs):
         uquestions = UQuestion.objects.filter(user=self.request.user,quiz__url=quiz_slug)
         today = datetime.date.today()
-        yesterday = today - datetime.timedelta(days = 3)
+        previous_day = today - datetime.timedelta(days = 3)
         for uquestion in uquestions:
-            uquestion.wrong_answer_date=yesterday
-            uquestion.date_of_next_rep=datetime.date.today()
-            uquestion.question_taken_date=yesterday
+            uquestion.question_taken_date=uquestion.wrong_answer_date=previous_day
+            uquestion.date_of_next_rep=today
             uquestion.save()
         return render(request, 'progress.html')            
 
@@ -54,25 +55,7 @@ class QuizListView(ListView):
 
     def get_queryset(self):
         queryset = super(QuizListView, self).get_queryset()
-        ex=queryset.filter(e_learning=False)
-        return ex.filter(exam_mode=False)
-
-class ElearningListView(ListView):
-    model = Quiz
-
-    def get_queryset(self):
-        queryset = super(ElearningListView, self).get_queryset()
-        ex=queryset.filter(exam_mode=False)
-        return  ex.filter(e_learning=True)
-
-class ExamListView(ListView):
-    model = Quiz
-
-    def get_queryset(self):
-        queryset = super(ExamListView, self).get_queryset()
-        ex=queryset.filter(e_learning=False)
-        return ex.filter(exam_mode=True)
-
+        return queryset
 
 class QuizDetailView(DetailView):
     model = Quiz
@@ -80,17 +63,15 @@ class QuizDetailView(DetailView):
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         quiz=Quiz.objects.get(url=self.kwargs['slug'])
-        mode=Quiz.objects.get(title=quiz)
-        exam_modes=mode.exam_mode
-        random_modes=mode.random_order
+        exam_mode=quiz.exam_mode
+        random_mode=quiz.random_order
+
+        # Ensuring personalized_quiz for each quiz 
         try:
-            p=PersonalizedQuiz.objects.get(quiz=quiz, user=request.user)
+            personalized_quiz=PersonalizedQuiz.objects.get(quiz=quiz, user=request.user)
         except PersonalizedQuiz.DoesNotExist:
-            PersonalizedQuiz.objects.create(quiz=quiz, user=request.user,max_questions=5,repeat_questions=25)
-
-        
-     
-
+            personalized_quiz=PersonalizedQuiz.objects.create(quiz=quiz, user=request.user,
+                max_questions=5,repeat_questions=25)
 
         self.object = self.get_object()
 
@@ -98,11 +79,13 @@ class QuizDetailView(DetailView):
             raise PermissionDenied
 
         context = self.get_context_data(object=self.object)
-        if exam_modes == False:
+
+        if exam_mode == False:
             context["exam_mode"] = "OFF"
         else:
             context["exam_mode"] = "ON"
-        if random_modes == False:
+
+        if random_mode == False:
             context["random_mode"] = "OFF"
         else:
             context["random_mode"] = "ON"
@@ -137,14 +120,12 @@ class ViewQuizListByCategory(ListView):
         return queryset.filter(category=self.category, draft=False)
 
 def progress_reports(request, *args, **kwargs):
-    question_ids=[]
-    question_corrects=[]
-    attemp_questions=[]
     progress_report = []
-    for quiz in Quiz.objects.filter(personalized_quizes__user=request.user):
+    personalized_quizes_for_user = Quiz.objects.filter(personalized_quizes__user=request.user)
+    for quiz in personalized_quizes_for_user:
         questions = Question.objects.filter(quiz=quiz)
-        total_question=questions.count()
-        if total_question == 0:
+        total_questions=questions.count()
+        if total_questions == 0:
             continue
         progress_dict = {}
         uquestions = UQuestion.objects.filter(user=request.user,quiz=quiz)
@@ -160,6 +141,7 @@ def progress_reports(request, *args, **kwargs):
         correct_answers3=0
         correct_answers4=0
         correct_answers5=0
+
         if correct_answer2 > 0:
             correct_answers2=uquestions.filter(correct_answer=2,today_wrong_answer=1).count()
 
@@ -169,18 +151,15 @@ def progress_reports(request, *args, **kwargs):
         if correct_answer4 > 0:
             correct_answers4=uquestions.filter(correct_answer=4,today_wrong_answer=1).count()
 
-        # if correct_answer5 > 0:
-        #     correct_answers5=uquestions.filter(correct_answer=5,today_wrong_answer=1).count()
-
         correct_answer2=correct_answer2-correct_answers2
         correct_answer3=correct_answer3-correct_answers3
         correct_answer4=correct_answer4-correct_answers4
-        # correct_answer5=correct_answer5-correct_answers5       
+
         try:
-            progres1=(50 * correct_answer1 /total_question)
-            progres2=(25 * correct_answer2 /total_question)
-            progres3=(12.5 * correct_answer3 /total_question)
-            progres4=(7.5 * correct_answer4 /total_question)
+            progres1=(50 * correct_answer1 /total_questions)
+            progres2=(25 * correct_answer2 /total_questions)
+            progres3=(12.5 * correct_answer3 /total_questions)
+            progres4=(7.5 * correct_answer4 /total_questions)
             # progres5=(5 * correct_answer5 /total_question)
             progress_percentage=progres1+progres2+progres3+progres4
             progress_dict["quiz"] = quiz.title
@@ -207,7 +186,6 @@ class QuizUserProgressView(TemplateView):
         progress, c = Progress.objects.get_or_create(user=self.request.user)
         context['cat_scores'] = progress.list_all_cat_scores
         context['exams'] = progress.show_exams()
-        
 
         progress_report=progress_reports(self.request)
         context={'progress_report':progress_report}
@@ -253,35 +231,29 @@ class QuizMarkingDetail(QuizMarkerMixin, DetailView):
 
 
 class QuizTake(FormView):
-    form_class = QuestionForm 
-    # template_name = 'previous_question.html'
-    #previous_template_name = 'previous_question.html'
+    form_class = QuestionForm
     result_template_name = 'result.html'
     single_complete_template_name = 'single_complete.html'
     templates_name = 'progress.html'
-    
-    
-    
 
     @method_decorator(login_required)
     def dispatch(self, request, *args, **kwargs):
+        # pdb.set_trace()
         self.quiz = get_object_or_404(Quiz, url=self.kwargs['quiz_name'])
 
-        mode=Quiz.objects.get(title=self.quiz)
-        modes=mode.e_learning
-        modess=mode.exam_mode
-        if modes == True and modess == False:
-            self.template_name = 'slides.html'    
+        quiz=Quiz.objects.get(title=self.quiz)
+        e_learning_status=quiz.e_learning
+        exam_mode_status=quiz.exam_mode
+
+        if e_learning_status == True and exam_mode_status == False:
+            self.template_name = 'slides.html'
         else:
             self.template_name = 'previous_question.html'
 
         if self.quiz.draft and not request.user.has_perm('quiz.change_quiz'):
             raise PermissionDenied
 
-        try:
-            self.logged_in_user = self.request.user.is_authenticated()
-        except TypeError:
-            self.logged_in_user = self.request.user.is_authenticated
+        self.logged_in_user = self.request.user.is_authenticated
 
         if self.logged_in_user:
             try:
@@ -299,31 +271,9 @@ class QuizTake(FormView):
         if self.sitting is False:
             return render(QuizTake, self.single_complete_template_name)
 
-        if request.method=="POST":
-            if "slide_id" in request.POST:
-                print("request.POST['slide_id']==",request.POST["slide_id"])
-            if "question_id" in request.POST:
-                print("request.POST['question_id']==",request.POST["question_id"])
-
-
         return super(QuizTake, self).dispatch(request, *args, **kwargs)
 
     def get_form(self, *args, **kwargs):
-        
-
-        # mode=Quiz.objects.get(title=self.quiz)
-        # modes=mode.e_learning
-        # modess=mode.exam_mode
-        # if modes == True and modess == False:
-        #     print("change the slides")
-        #     template_name = 'slides.html'    
-        #     previous_template_name = 'slides.html'
-        # else:
-        #     print("not changes")
-        #     template_name = 'previous_question.html'
-        #     previous_template_name = 'previous_question.html'
-
-
         
         if self.logged_in_user:
 
@@ -458,9 +408,9 @@ class QuizTake(FormView):
                                 corection=peronalized_max_questions.tempory_questions
                                 context["new_question"] = corection
                                 if corection == "1":
-                                    context["question_info"] = "Repetation"
+                                    context["question_info"] = "Repetition"
                                 else: 
-                                    context["question_info"] = "Repetations"
+                                    context["question_info"] = "Repetitions"
                         else:
                  
                             new_questi=peronalized_max_questions.question_repe+1
@@ -623,7 +573,7 @@ class QuizTake(FormView):
         if modes == True and modess == False:
             is_correct=True
             print("is_correct",is_correct)
-            #guess=1
+            guess=1
         else:
             guess = form.cleaned_data['answers']
             print("guesssssss",guess)
