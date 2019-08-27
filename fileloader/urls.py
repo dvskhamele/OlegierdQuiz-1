@@ -28,11 +28,5 @@ urlpatterns = [
     url(r'^hwmodel$', hwmodel, name='hwmodel'),
     url(r'^lmmplusmodel$', lmmplusmodel, name='lmmplusmodel'),
     url(r'^calib_vasicekmodel$', calib_vasicekmodel, name='calib_vasicekmodel'),
-    #url(r'^calib_cirmodel$', calib_cirmodel, name='calib_cirmodel'),
-    #url(r'^calib_hwmodel$', calib_hwmodel, name='calib_hwmodel'),
-    #url(r'^calib_lmmplusmodel$', calib_lmmplusmodel, name='calib_lmmplusmodel'),
-    #url(r'^login/$', auth_views.login, name='login'),
-    #url(r'^logout/$', auth_views.logout, name='logout'),
-    #url(r'^admin/', admin.site.urls),
 
 ]+static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)

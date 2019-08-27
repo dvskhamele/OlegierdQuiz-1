@@ -1,15 +1,17 @@
 from __future__ import unicode_literals
 import re
 import json
+import random
 from datetime import timedelta 
 from django.db import models
-from django.core.exceptions import ValidationError, ImproperlyConfigured 
+from django.core.exceptions import ValidationError, ImproperlyConfigured
 from django.core.validators import (
     MaxValueValidator, validate_comma_separated_integer_list,
 )
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from django.utils.encoding import python_2_unicode_compatible
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 import pytz 
 
@@ -79,7 +81,7 @@ class SubCategory(models.Model):
 
     category = models.ForeignKey(
         Category, null=True, blank=True,
-        verbose_name=_("Category"), on_delete=models.DO_NOTHING)
+        verbose_name=_("Category"), on_delete=models.CASCADE)
 
     objects = CategoryManager()
 
@@ -109,7 +111,7 @@ class Quiz(models.Model):
 
     category = models.ForeignKey(
         Category, null=True, blank=True,
-        verbose_name=_("Category"), on_delete=models.DO_NOTHING)
+        verbose_name=_("Category"), on_delete=models.CASCADE)
     
     random_order = models.BooleanField(
         blank=False, default=False,
@@ -222,8 +224,8 @@ class Image(models.Model):
 
 
 class PersonalizedQuiz(models.Model):
-    user = models.ForeignKey(User, related_name="personalized_quizes", verbose_name=_("User"), on_delete=models.DO_NOTHING ,blank=True,null=True)
-    quiz = models.ForeignKey(Quiz, related_name="personalized_quizes",verbose_name=_("Quiz"), on_delete=models.DO_NOTHING,blank=True,null=True )
+    user = models.ForeignKey(User, related_name="personalized_user", verbose_name=_("User"), on_delete=models.CASCADE ,blank=True,null=True)
+    quiz = models.ForeignKey(Quiz, related_name="personalized_quizes",verbose_name=_("Quiz"), on_delete=models.CASCADE,blank=True,null=True )
     max_questions = models.CharField(max_length=1024,verbose_name=_("max_questionss"),blank=True,null=True)
     repeat_questions = models.CharField(max_length=1024,verbose_name=_("repeat_questions"),blank=True,null=True)
     previous_question_list = models.CharField(max_length=1024,verbose_name=_("Previous Question List"),
@@ -287,8 +289,6 @@ class Progress(models.Model):
                 possible = int(match.group(2))
 
                 try:
-                    if int(possible) == 0:
-                        percent = 0
                     percent = int(round((float(score) / float(possible))
                                         * 100))
                 except:
@@ -351,6 +351,7 @@ class Progress(models.Model):
                     str(question.category),
                     str(score_to_add),
                     str(possible_to_add),
+                    ""
                 ])
             self.save()
 
@@ -364,9 +365,9 @@ class Progress(models.Model):
 
 
 class UQuestion(models.Model):
-    user = models.ForeignKey(User, related_name="user_questions", verbose_name=_("User"), on_delete=models.DO_NOTHING ,blank=True,null=True)
-    quiz = models.ForeignKey(Quiz, related_name="user_questions",verbose_name=_("Quiz1"), on_delete=models.DO_NOTHING,blank=True,null=True )
-    questions = models.ForeignKey('Question', related_name="user_questions",verbose_name=_("Questio"), on_delete=models.DO_NOTHING,blank=True,null=True )
+    user = models.ForeignKey(User, related_name="user_questions", verbose_name=_("User"), on_delete=models.CASCADE ,blank=True,null=True)
+    quiz = models.ForeignKey(Quiz, related_name="user_questions",verbose_name=_("Quiz1"), on_delete=models.CASCADE,blank=True,null=True )
+    questions = models.ForeignKey('Question', related_name="user_questions",verbose_name=_("Questio"), on_delete=models.CASCADE,blank=True,null=True )
     attempt_question = models.IntegerField(verbose_name=_("attemp_questions"),blank=True,null=True)
     correct_answer = models.IntegerField(verbose_name=_("correct_answer"),
         blank=True,null=True)
@@ -387,9 +388,9 @@ class SittingManager(models.Manager):
 
         pq = PersonalizedQuiz.objects.get(quiz=quiz, user=user)
         request_user=user
-        personalized_max_questions = int(pq.max_questions)
+        peronalized_max_questions = int(pq.max_questions)
         repeated_questions = int(pq.repeat_questions)
-        numbers_to_repeat = round(repeated_questions * personalized_max_questions / 100 + 0.1) 
+        numbers_to_repeat = round(repeated_questions * peronalized_max_questions / 100 + 0.1) 
 
         previous_question_list = pq.previous_question_list
 
@@ -413,6 +414,7 @@ class SittingManager(models.Manager):
                                             .select_subclasses()
 
         question_set = [item.id for item in question_set]
+        repeat_question=pq.repeat_questions
         max_question = pq.max_questions
         pq.rember=0
         mode=quiz.exam_mode
@@ -459,30 +461,34 @@ class SittingManager(models.Manager):
             session_slides_f=session_slides_f[0:max_question]
 
             fmt2 = "%z"
-            tz1=user.timezone1
+            tz = user
+            tz1=tz.timezone1
             
             tz2 = pytz.timezone(str(tz1))
             user_time = datetime.datetime.now(tz2)
-            user_strf=user_time.strftime(fmt2)
-            user_hour1=user_strf[1]
+            user=user_time.strftime(fmt2)
+            user_hour1=user[1]
+            user_hour2=user[2]
             if user_hour1 != "0":
-                hours=user_strf[1:3]
+                hours=user[1:3]
             else:
-                hours=user_strf[2]
-            user_time=user_strf[3:5]
-            if user_strf[3] != "0":
-                minutes=user_strf[3:5]
+                hours=user[2]
+            user_time=user[3:5]
+            minute=user[3]
+            if minute != "0":
+                minutes=user[3:5]
             else:
-                minutes=user_strf[4]
-            value=user_strf[0:1]
+                minutes=user[4]
+            value=user[0:1]
             value=str(value)
             fmt = "%Y-%m-%d %H:%M:%S"
-            today_as_str = str(datetime.date.today()) 
             if value == "-":
                 time=timedelta(hours=int(hours),minutes=int(minutes))
                 time=time+timedelta(minutes=10)
+                datess=datetime.date.today() 
+                datess=str(datess)
                 time=str(time)
-                user_date=today_as_str+" "+time 
+                user_date=datess+" "+time 
                 user_date_time=datetime.datetime.strptime(user_date , fmt)      
                 pq.session_time=user_date_time
                 pq.save()
@@ -490,8 +496,10 @@ class SittingManager(models.Manager):
             if value == "+":
                 time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
                 time=time+timedelta(minutes=10)
+                datess=datetime.date.today() 
+                datess=str(datess)
                 time=str(time)
-                user_date=today_as_str+" "+time 
+                user_date=datess+" "+time 
                 user_date_time=datetime.datetime.strptime(user_date , fmt)
                 pq.session_time=user_date_time
                 pq.save()
@@ -536,7 +544,8 @@ class SittingManager(models.Manager):
                 else:
                     question_setss=tempory_questions_set[tempory_question:temp_questions]
                     
-            if quiz.e_learning == False and quiz.exam_mode == False:
+
+            if modes == False and modess == False:
                 question_set=(list(set(question_set) - set(check_question)))
                 new_questions=max_question
                 question_sets=question_set[0:new_questions]
@@ -620,12 +629,12 @@ class SittingManager(models.Manager):
 
                 
         if len(question_set) == 0:
-            raise ImproperlyConfigured('Question set of the quiz is empty. '
+            raise ImpropervlyConfigured('Question set of the quiz is empty. '
                                        'Please configure questions properly')
 
 
 
-        if personalized_max_questions < len(question_set):
+        if peronalized_max_questions < len(question_set):
             question_set = question_set
         questions = ",".join(map(str, question_set)) + ","
         new_sitting = self.create(user=request_user,
@@ -679,9 +688,9 @@ class Sitting(models.Model):
     with the answer the user gave.
     """
 
-    user = models.ForeignKey(User, verbose_name=_("User"), on_delete=models.DO_NOTHING)
+    user = models.ForeignKey(User, verbose_name=_("User"), on_delete=models.CASCADE)
 
-    quiz = models.ForeignKey(Quiz, verbose_name=_("Quiz"), on_delete=models.DO_NOTHING)
+    quiz = models.ForeignKey(Quiz, verbose_name=_("Quiz"), on_delete=models.CASCADE)
 
     question_order = models.CharField(
         max_length=1024,
@@ -731,11 +740,11 @@ class Sitting(models.Model):
         except PersonalizedQuiz.DoesNotExist:
             pre_q=PersonalizedQuiz.objects.create(quiz=quiz, user=self.user)
         
-        if quiz.e_learning == True and quiz.exam_mode == False:# and is_slides == True:
+        if mode.e_learning == True and mode.exam_mode == False:# and is_slides == True:
             self.save()
 
 
-        if quiz.exam_mode == False:
+        if mode.exam_mode == False:
             times=pre_q.session_time
             times=datetime.datetime.strptime(times, "%Y-%m-%d %H:%M:%S")
             now = datetime.datetime.now()
@@ -743,21 +752,29 @@ class Sitting(models.Model):
             date_times=datetime.datetime.strptime(date_times, "%Y-%m-%d %H:%M:%S")
             if date_times >= times:
                 self.complete = True
-                self.end = now
+                self.end = datetime.datetime.now()
                 self.save()
         first, _ = self.question_list.split(',', 1)
         question_id = int(first)
+        questions = Question.objects.filter(quiz=quiz)
+        questions_count = questions.count()
+        user_questions=UQuestion.objects.filter(quiz=quiz, user=self.user)
+        user_questions_count = user_questions.count()
+
         q = Question.objects.get(id=question_id)
-        if UQuestion.objects.filter(quiz=quiz, user=self.user,questions=q).count() == 0:
-                mode=quiz.exam_mode
+        try:
+                uq=UQuestion.objects.get(quiz=quiz, user=self.user,questions=q)
+        except UQuestion.DoesNotExist:
+                
+                mode=Quiz.objects.get(title=quiz)
+                mode=mode.exam_mode
                 if mode == False:
                     fmt = "%Y-%m-%d %H:%M:%S"
                     now = datetime.datetime.now()
                     date_time=now.strftime(fmt)
                     yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
                     uq=UQuestion.objects.create(quiz=self.quiz, user=self.user,questions=q,
-                        attempt_question=0,correct_answer=0,date_of_next_rep=date_time,
-                        question_taken_date=date_time,
+                        attempt_question=0,correct_answer=0,date_of_next_rep=date_time,question_taken_date=date_time,
                         wrong_answer_date=yesterday,today_wrong_answer=0)
                     pre_qu=PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.user)
                     pre_qu.question_attemp=pre_qu.question_attemp+1
@@ -776,11 +793,14 @@ class Sitting(models.Model):
         except PersonalizedQuiz.DoesNotExist:
             pre_q=PersonalizedQuiz.objects.create(quiz=self.quiz, user=self.user)
         
-        mode=self.quiz.exam_mode
+        quiz=Quiz.objects.get(title=self.quiz)
+        mode=quiz.exam_mode
         if mode == False:
-            times=datetime.datetime.strptime(pre_q.session_time, "%Y-%m-%d %H:%M:%S")
+            times=pre_q.session_time
+            times=datetime.datetime.strptime(times, "%Y-%m-%d %H:%M:%S")
             now = datetime.datetime.now()
-            date_times=datetime.datetime.strptime(now.strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+            date_times=now.strftime("%Y-%m-%d %H:%M:%S")
+            date_times=datetime.datetime.strptime(date_times, "%Y-%m-%d %H:%M:%S")
             
             que_id = self.question_list.split(",")[0]
             
@@ -797,6 +817,7 @@ class Sitting(models.Model):
                 previous_question_list = []
                 previous_question_list.append(que_id)
                 pre_q.previous_question_list = previous_question_list
+                
             else:
                 previous_question_list = pre_q.previous_question_list
                 previous_question_list = previous_question_list.replace('[',"").replace("'","").replace(']',"").split(', ')
@@ -850,6 +871,7 @@ class Sitting(models.Model):
         
                 self.save()
                 pre_q.save()
+                que_ids = self.question_list.split(",")[0]
                 
 
             else:
@@ -858,9 +880,11 @@ class Sitting(models.Model):
                 corrections=self.question_list.count(",")
                 pre_q.correction=corrections
                 pre_q.save()
+                que_ids = self.question_list.split(",")[0]
 
         if modes == True:
             self.question_list = others
+            que_ids = self.question_list.split(",")[0]
             self.save()
 
 
@@ -941,8 +965,10 @@ class Sitting(models.Model):
 
         current = json.loads(self.user_answers)
         
-        quiz=Quiz.objects.get(title=self.quiz)
-        if quiz.e_learning == True and quiz.exam_mode == False: 
+        mode=Quiz.objects.get(title=self.quiz)
+        modes=mode.e_learning
+        modess=mode.exam_mode
+        if modes == True and modess == False: 
             current[question.id] = guess
             self.user_answers = json.dumps(current)
             self.save()
@@ -955,18 +981,19 @@ class Sitting(models.Model):
             answer_id=Answer.objects.get(id=current[question.id])
             check_answer=answer_id.correct
         
-        today_as_str=str(datetime.date.today())
-
-        if self.quiz.exam_mode == False:
-            add_answer_id = UQuestion.objects.get(quiz=self.quiz, user=self.user,
-                questions=question.id)
+        mode=Quiz.objects.get(title=self.quiz)
+        mode=mode.exam_mode
+        if mode == False:
+            add_answer_id = UQuestion.objects.get(quiz=self.quiz, user=self.user,questions=question.id)
             if check_answer == False:
                 fmt2 = "%z"
                 tz1=self.user.timezone1
                 tz2 = pytz.timezone(str(tz1))
                 user_time = datetime.datetime.now(tz2)
                 user_strf=user_time.strftime(fmt2)
-                if user_strf[1] != "0":
+                user_hour1=user_strf[1]
+                user_hour2=user_strf[2]
+                if user_hour1 != "0":
                     hours=user_strf[1:3]
                 else:
                     hours=user_strf[2]
@@ -975,34 +1002,38 @@ class Sitting(models.Model):
                     minutes=user_strf[3:5]
                 else:
                     minutes=user_strf[4]
-                value=str(user_strf[0:1])
-
-                fmt5 = "%Y-%m-%d %H:%M:%S"
-
+                value=user_strf[0:1]
+                value=str(value)
                 if value == "-":
+                    fmt5 = "%Y-%m-%d %H:%M:%S"
                     time=timedelta(hours=int(hours),minutes=int(minutes))
+                    datess=datetime.date.today() 
+                    datess=str(datess)
                     time=str(time)
-                    user_date=today_as_str+" "+time 
+                    user_date=datess+" "+time 
                     user_date_time=datetime.datetime.strptime(user_date , fmt5)
                     add_answer_id.date_of_next_rep=user_date_time
                     
-                elif value == "+":
+                if value == "+":
+                    fmt5 = "%Y-%m-%d %H:%M:%S"
                     time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
+                    datess=datetime.date.today() 
+                    datess=str(datess)
                     time=str(time)
-                    user_date=today_as_str+" "+time 
+                    user_date=datess+" "+time 
                     user_date_time=datetime.datetime.strptime(user_date , fmt5)
                     add_answer_id.date_of_next_rep=user_date_time
-
-                elif value == " ":
+                if value == " ":
+                    fmt1= "%Y-%m-%d %H:%M:%S"
                     now = datetime.datetime.now()
-                    date_time1=now.strftime(fmt5)
-                    user_date_time=datetime.datetime.strptime(date_time1, fmt5)
-
+                    date_time1=now.strftime(fmt1)
+                    user_date_time=datetime.datetime.strptime(date_time1, fmt1)
                 add_answer_id.wrong_answer_date = user_date_time
                 add_answer_id.question_taken_date= user_date_time
                 add_answer_id.today_wrong_answer =1
 
-            elif check_answer == True:
+
+            if check_answer == True:
                 fmt = "%Y-%m-%d %H:%M:%S"
                 now = datetime.datetime.now()
                 wrong_answer=now.strftime(fmt)
@@ -1014,21 +1045,24 @@ class Sitting(models.Model):
                 qusetion_rep=qusetion_rep.repeat_questions
 
                 fmt2 = "%z"
-                tz1=self.user.timezone1
+                tz = self.user
+                tz1=tz.timezone1
                 tz2 = pytz.timezone(str(tz1))
                 user_time = datetime.datetime.now(tz2)
-                user_strf=user_time.strftime(fmt2)
-                if user_strf[1] != "0":
-                    hours=user_strf[1:3]
+                user=user_time.strftime(fmt2)
+                user_hour1=user[1]
+                user_hour2=user[2]
+                if user_hour1 != "0":
+                    hours=user[1:3]
                 else:
-                    hours=user_strf[2]
-                user_time=user_strf[3:5]
-                minute=user_strf[3]
+                    hours=user[2]
+                user_time=user[3:5]
+                minute=user[3]
                 if minute != "0":
-                    minutes=user_strf[3:5]
+                    minutes=user[3:5]
                 else:
-                    minutes=user_strf[4]
-                value=user_strf[0:1]
+                    minutes=user[4]
+                value=user[0:1]
                 value=str(value)
                 add_answer_id.correct_answer = add_answer_id.correct_answer + 1
                 if add_answer_id.correct_answer == 1:
@@ -1036,8 +1070,10 @@ class Sitting(models.Model):
                         if value == "-":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=int(hours),minutes=int(minutes))
+                            datess=datetime.date.today() + datetime.timedelta(days=2) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=str(today_as_str + datetime.timedelta(days=2) )+" "+time
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                             
@@ -1052,9 +1088,10 @@ class Sitting(models.Model):
                         if value == "+":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                            day=str(datetime.date.today() + datetime.timedelta(days=2))
+                            datess=datetime.date.today() + datetime.timedelta(days=2) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
 
@@ -1081,10 +1118,10 @@ class Sitting(models.Model):
                         if value == "-":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=3) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=3) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
 
@@ -1097,10 +1134,10 @@ class Sitting(models.Model):
                         if value == "+":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=3) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=3) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                         
@@ -1127,10 +1164,10 @@ class Sitting(models.Model):
                         if value == "-":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=4) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=4) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                         
@@ -1143,10 +1180,10 @@ class Sitting(models.Model):
                         if value == "+":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=4) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=4) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                         
@@ -1174,10 +1211,10 @@ class Sitting(models.Model):
                         if value == "-":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=5) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=5) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                         
@@ -1190,10 +1227,10 @@ class Sitting(models.Model):
                         if value == "+":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=5) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=5) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                         
@@ -1220,10 +1257,10 @@ class Sitting(models.Model):
                         if value == "-":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=7) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=7) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                         
@@ -1236,10 +1273,10 @@ class Sitting(models.Model):
                         if value == "+":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=7) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=7) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                         
@@ -1266,10 +1303,10 @@ class Sitting(models.Model):
                         if value == "-":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=10) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=10) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                         
@@ -1282,10 +1319,10 @@ class Sitting(models.Model):
                         if value == "+":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=10) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=10) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                         
@@ -1313,10 +1350,10 @@ class Sitting(models.Model):
                         if value == "-":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=14) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=14) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                         
@@ -1329,10 +1366,10 @@ class Sitting(models.Model):
                         if value == "+":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=14) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=14) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                         
@@ -1351,6 +1388,7 @@ class Sitting(models.Model):
 
                             fmt = "%Y-%m-%d %H:%M:%S"
                             now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
                             yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
                             add_answer_id.wrong_answer_date = yesterday
 
@@ -1358,30 +1396,32 @@ class Sitting(models.Model):
                         if value == "-":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=21) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=21) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                         
                             fmt = "%Y-%m-%d %H:%M:%S"
                             now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
                             yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
                             add_answer_id.wrong_answer_date = yesterday
 
                         if value == "+":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=21) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=21) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                         
                             fmt = "%Y-%m-%d %H:%M:%S"
                             now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
                             yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
                             add_answer_id.wrong_answer_date = yesterday
 
@@ -1394,6 +1434,7 @@ class Sitting(models.Model):
 
                             fmt = "%Y-%m-%d %H:%M:%S"
                             now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
                             yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
                             add_answer_id.wrong_answer_date = yesterday
 
@@ -1402,30 +1443,32 @@ class Sitting(models.Model):
                         if value == "-":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=30) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=30) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                         
                             fmt = "%Y-%m-%d %H:%M:%S"
                             now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
                             yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
                             add_answer_id.wrong_answer_date = yesterday
 
                         if value == "+":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=30) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=30) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                         
                             fmt = "%Y-%m-%d %H:%M:%S"
                             now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
                             yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
                             add_answer_id.wrong_answer_date = yesterday
 
@@ -1438,6 +1481,7 @@ class Sitting(models.Model):
 
                             fmt = "%Y-%m-%d %H:%M:%S"
                             now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
                             yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
                             add_answer_id.wrong_answer_date = yesterday
 
@@ -1446,28 +1490,30 @@ class Sitting(models.Model):
                         if value == "-":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=30) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=30) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                             fmt = "%Y-%m-%d %H:%M:%S"
                             now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
                             yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
                             add_answer_id.wrong_answer_date = yesterday
 
                         if value == "+":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=30) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=30) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                             fmt = "%Y-%m-%d %H:%M:%S"
                             now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
                             yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
                             add_answer_id.wrong_answer_date = yesterday
 
@@ -1479,6 +1525,7 @@ class Sitting(models.Model):
                             add_answer_id.date_of_next_rep=user_date_time
                             fmt = "%Y-%m-%d %H:%M:%S"
                             now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
                             yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
                             add_answer_id.wrong_answer_date = yesterday
 
@@ -1487,28 +1534,30 @@ class Sitting(models.Model):
                         if value == "-":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=60) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=60) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                             fmt = "%Y-%m-%d %H:%M:%S"
                             now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
                             yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
                             add_answer_id.wrong_answer_date = yesterday
 
                         if value == "+":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=60) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=60) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                             fmt = "%Y-%m-%d %H:%M:%S"
                             now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
                             yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
                             add_answer_id.wrong_answer_date = yesterday
 
@@ -1520,6 +1569,7 @@ class Sitting(models.Model):
                             add_answer_id.date_of_next_rep=user_date_time
                             fmt = "%Y-%m-%d %H:%M:%S"
                             now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
                             yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
                             add_answer_id.wrong_answer_date = yesterday
 
@@ -1527,28 +1577,30 @@ class Sitting(models.Model):
                         if value == "-":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=90) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=90) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                             fmt = "%Y-%m-%d %H:%M:%S"
                             now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
                             yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
                             add_answer_id.wrong_answer_date = yesterday
 
                         if value == "+":
                             fmt5 = "%Y-%m-%d %H:%M:%S"
                             time=timedelta(hours=24)-timedelta(hours=int(hours),minutes=int(minutes))
-                            day=datetime.date.today() + datetime.timedelta(days=90) 
-                            day=str(day)
+                            datess=datetime.date.today() + datetime.timedelta(days=90) 
+                            datess=str(datess)
                             time=str(time)
-                            user_date=day+" "+time 
+                            user_date=datess+" "+time 
                             user_date_time=datetime.datetime.strptime(user_date , fmt5)
                             add_answer_id.date_of_next_rep=user_date_time
                             fmt = "%Y-%m-%d %H:%M:%S"
                             now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
                             yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
                             add_answer_id.wrong_answer_date = yesterday
                             
@@ -1560,6 +1612,7 @@ class Sitting(models.Model):
                             add_answer_id.date_of_next_rep=user_date_time
                             fmt = "%Y-%m-%d %H:%M:%S"
                             now = datetime.datetime.now()
+                            date_time=now.strftime(fmt)
                             yesterday = datetime.datetime.now() - datetime.timedelta(days = 500)
                             add_answer_id.wrong_answer_date = yesterday
 
@@ -1603,7 +1656,10 @@ class Sitting(models.Model):
         Returns the number of questions answered so far and the total number of
         questions.
         """
-        if self.quiz.e_learning == True and self.quiz.exam_mode == False:
+        mode=Quiz.objects.get(title=self.quiz)
+        modes=mode.e_learning
+        modess=mode.exam_mode
+        if modes == True and modess == False:
             answered = 8
         else:
             answered = len(json.loads(self.user_answers))
@@ -1631,13 +1687,13 @@ class Question(models.Model):
                                  verbose_name=_("Category"),
                                  blank=True,
                                  null=True,
-                                 on_delete=models.DO_NOTHING)
+                                 on_delete=models.CASCADE)
 
     sub_category = models.ForeignKey(SubCategory,
                                      verbose_name=_("Sub-Category"),
                                      blank=True,
                                      null=True,
-                                     on_delete=models.DO_NOTHING)
+                                     on_delete=models.CASCADE)
 
     figure = models.ImageField(upload_to='uploads/%Y/%m/%d',
                                blank=True,

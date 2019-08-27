@@ -10,8 +10,6 @@ from essay.models import Essay_Question
 
 from import_export.admin import ImportExportModelAdmin
 
-import tablib
-from import_export import resources
 from .forms import CustomUserCreationForm , CustomUserChangeForm
 from .resources import QuizResource ,QuizafterResource
 

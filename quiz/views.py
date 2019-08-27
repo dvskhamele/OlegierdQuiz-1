@@ -1,25 +1,16 @@
 import random
-from django.http import HttpResponseRedirect
 from django.contrib.auth.decorators import login_required, permission_required
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError, ImproperlyConfigured
 from django.shortcuts import get_object_or_404, render
 from django.utils.decorators import method_decorator
 from django.views.generic import DetailView, ListView, TemplateView, FormView
 import datetime
-from .forms import QuestionForm, EssayForm, PersonalizedQuizForm
-from .models import *
+from .forms import QuestionForm, EssayForm
+from .models import Category, Quiz,  PersonalizedQuiz, Question, UQuestion,Progress, Sitting
 from essay.models import Essay_Question
-from django.views import View 
-from rest_framework.decorators import api_view
-from django.http import HttpResponse,  Http404
-from multichoice.models import MCQuestion,Answer
 from django.shortcuts import redirect
-from pytz import timezone 
-from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.conf import settings
-
-# import pdb
 
 class TestingView(TemplateView):
     def get(self, request, quiz_slug, *args, **kwargs):
@@ -32,15 +23,11 @@ class TestingView(TemplateView):
             uquestion.save()
         return render(request, 'progress.html')            
 
-    
-
- 
 class QuizMarkerMixin(object):
     @method_decorator(login_required)
     @method_decorator(permission_required('quiz.view_sittings'))
     def dispatch(self, *args, **kwargs): 
         return super(QuizMarkerMixin, self).dispatch(*args, **kwargs)
-
 
 class SittingFilterTitleMixin(object):
     def get_queryset(self):
@@ -67,10 +54,8 @@ class QuizDetailView(DetailView):
         random_mode=quiz.random_order
 
         # Ensuring personalized_quiz for each quiz 
-        try:
-            personalized_quiz=PersonalizedQuiz.objects.get(quiz=quiz, user=request.user)
-        except PersonalizedQuiz.DoesNotExist:
-            personalized_quiz=PersonalizedQuiz.objects.create(quiz=quiz, user=request.user,
+        if PersonalizedQuiz.objects.filter(quiz=quiz, user=request.user).count() ==0:
+            PersonalizedQuiz.objects.create(quiz=quiz, user=request.user,
                 max_questions=5,repeat_questions=25)
 
         self.object = self.get_object()
@@ -121,26 +106,26 @@ class ViewQuizListByCategory(ListView):
 
 def progress_reports(request, *args, **kwargs):
     progress_report = []
-    personalized_quizes_for_user = Quiz.objects.filter(personalized_quizes__user=request.user)
+    user = request.user
+    personalized_quizes_for_user = Quiz.objects.filter(personalized_quizes__user=user)
     for quiz in personalized_quizes_for_user:
         questions = Question.objects.filter(quiz=quiz)
         total_questions=questions.count()
         if total_questions == 0:
             continue
         progress_dict = {}
-        uquestions = UQuestion.objects.filter(user=request.user,quiz=quiz)
+        uquestions = UQuestion.objects.filter(user=user,quiz=quiz)        
         wrong_answer=uquestions.filter(today_wrong_answer=1).count()
         correct_answer1=uquestions.filter(correct_answer=1).count()
         correct_answer2=uquestions.filter(correct_answer=2).count()
         correct_answer3=uquestions.filter(correct_answer=3).count()
         correct_answer4=uquestions.filter(correct_answer=4).count()
-        correct_answer5=uquestions.filter(correct_answer=5).count()
+
         correct_answer1=abs(correct_answer1-wrong_answer)
         
         correct_answers2=0
         correct_answers3=0
         correct_answers4=0
-        correct_answers5=0
 
         if correct_answer2 > 0:
             correct_answers2=uquestions.filter(correct_answer=2,today_wrong_answer=1).count()
@@ -162,7 +147,7 @@ def progress_reports(request, *args, **kwargs):
             progres4=(7.5 * correct_answer4 /total_questions)
             # progres5=(5 * correct_answer5 /total_question)
             progress_percentage=progres1+progres2+progres3+progres4
-            progress_dict["quiz"] = quiz.title
+            progress_dict["quiz"] = quiz
             progress_dict["quiz_report"] = str(round(min(progress_percentage,100),2))
 
             progress_report.append(progress_dict)
@@ -241,7 +226,7 @@ class QuizTake(FormView):
         # pdb.set_trace()
         self.quiz = get_object_or_404(Quiz, url=self.kwargs['quiz_name'])
 
-        quiz=Quiz.objects.get(title=self.quiz)
+        quiz=self.quiz
         e_learning_status=quiz.e_learning
         exam_mode_status=quiz.exam_mode
 
@@ -259,8 +244,9 @@ class QuizTake(FormView):
             try:
                 self.sitting = Sitting.objects.user_sitting(request.user,
                                                         self.quiz)
-            except PersonalizedQuiz.DoesNotExist:
-                return redirect('/quiz/quiz_index/')
+            except ImproperlyConfigured:
+                content ="Congratulations, you have taken all the Questions already. Please come back tomorrow to repeat!."
+                return render(self.request, 'quiz/complete_attempt_questions.html',{'content':content})
 
             except NameError:
                 content ="Congratulations, you have taken all the Questions already. Please come back tomorrow to repeat!."
@@ -323,16 +309,11 @@ class QuizTake(FormView):
         timerss=peronalized_max_questions.timers
         context["timer"] = timerss
 
-        
-
         if mode == False:
             modify = UQuestion.objects.get(quiz=self.quiz, user=self.request.user,questions=self.question)
             new_questions=modify.attempt_question
-            second_attempt_day=modify.question_taken_date
             next_rep_date=modify.date_of_next_rep
             wrong_answer=modify.wrong_answer_date
-            
-
 
             if new_questions == 0:
                 new_question=peronalized_max_questions.total_new_question
@@ -352,36 +333,15 @@ class QuizTake(FormView):
                     context["question_info"] = "New Questions"
             
             else:
-                fmt = "%Y-%m-%d"
                 fmt1 = "%Y-%m-%d %H:%M:%S"
-                now = datetime.datetime.now() 
-                date=now.strftime(fmt)
                 now1 = datetime.datetime.now() 
                 date1=now1.strftime(fmt1)
                 date1=datetime.datetime.strptime(date1, "%Y-%m-%d %H:%M:%S")
-                rep=second_attempt_day[0:10]
                 timesss=next_rep_date[0:19]
                 wrong_answers=wrong_answer[0:19]
                 timesss=datetime.datetime.strptime(timesss, "%Y-%m-%d %H:%M:%S")
                 wrong_answers=datetime.datetime.strptime(wrong_answers, "%Y-%m-%d %H:%M:%S")
-                question_att_date=rep
-                
-
-        
-
-                #if timesss < date1:
-                #    if modify.correct_answer == 0:
                 if new_questions > 0:
-                        #if modify.today_wrong_answer == 1:
-                        # if wrong_answers == timesss:
-                        #     if modify.today_wrong_answer == 1:
-                        #         #corection=peronalized_max_questions.correction
-                                #peronalized_max_questions.question_repe=0
-                                #peronalized_max_questions.total_repeat=corection
-                                #peronalized_max_questions.rember_questions=0
-                               
-                                #peronalized_max_questions.save()
-
                         if timesss < date1:
                             if peronalized_max_questions.tempory_questions == 1 :
                                 peronalized_max_questions.question_repe=0
@@ -497,8 +457,6 @@ class QuizTake(FormView):
                                 else:
                                     context["to_display_question"] = 0
                         return context
-    
-
 
         if peronalized_max_questions.rember == "0":
             if "checked" in self.request.POST:
@@ -633,10 +591,7 @@ class QuizTake(FormView):
         if mode == True:
             return render(self.request, self.result_template_name, results)
         else:
-
-            progress_report=progress_reports(self.request)
-            context={'progress_report':progress_report}
-            return render(self.request, self.templates_name,context)
+                return redirect('/quiz/progress/')
             
 
     def anon_load_sitting(self):
@@ -663,7 +618,7 @@ class QuizTake(FormView):
 
         if self.quiz.max_questions and (self.quiz.max_questions
                                         < len(question_list)):
-            peronalized_max_questions = PersonalizedQuiz.objects.get(quiz=self.quiz, user=request.user).max_questions
+            peronalized_max_questions = PersonalizedQuiz.objects.get(quiz=self.quiz, user=self.request.user).max_questions
             question_list = question_list[:peronalized_max_questions]
 
         # session score for anon users
@@ -723,7 +678,7 @@ class QuizTake(FormView):
         max_score = len(q_order)
         percent = int(round((float(score) / max_score) * 100))
         session, session_possible = anon_session_score(self.request.session)
-        if score is 0:
+        if score == 0:
             score = "0"
 
         results = {
@@ -782,7 +737,6 @@ class quiz1(DetailView):
     slug_field = 'url'
 
     def post(self, request, *args, **kwargs):
-            form = PersonalizedQuizForm(request.POST)
             quiz=Quiz.objects.get(url=self.kwargs['slug'])
             pq=PersonalizedQuiz.objects.get(quiz=quiz, user=request.user)
             max_questions=request.POST['question']
@@ -802,7 +756,6 @@ class quizrep(TemplateView):
     slug_field = 'url'
     def post(self, request, *args, **kwargs):
         if request.method == 'POST':
-            form = PersonalizedQuizForm(request.POST)
             quiz=Quiz.objects.get(url=self.kwargs['slug'])
             pq=PersonalizedQuiz.objects.get(quiz=quiz, user=request.user)
             repeat_questions=request.POST['repeat_questions']

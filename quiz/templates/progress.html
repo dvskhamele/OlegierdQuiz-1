@@ -26,9 +26,8 @@
 
         		<tr> 
    
-
       			  <td>
-                <a href="{% url 'quiz_index' %}" class="login100-form-btn">{{ c.quiz }} </a>
+                <a href="{% url 'quiz_start_page' c.quiz.url %}" class="login100-form-btn">{{ c.quiz }} </a>
 
 
                 <td><span class="login100-form-title p-t-1 p-b-45">{{ c.quiz_report }}  % </span></td>

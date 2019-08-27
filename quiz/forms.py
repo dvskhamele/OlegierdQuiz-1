@@ -39,9 +39,6 @@ class EssayForm(forms.Form):
         super(EssayForm, self).__init__(*args, **kwargs)
         self.fields["answers"] = forms.CharField(
             widget=Textarea(attrs={'style': 'width:100%'}))
-        print("answers1",answers)
-
-
 
 class PersonalizedQuizForm(forms.ModelForm):
     max_questions = forms.IntegerField(label='max_questions', min_value=1,max_value=1000)

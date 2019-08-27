@@ -1,31 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET, require_POST
-from .models import *
 from .forms import *
 from django.http import HttpResponse,  Http404
 from .functions import *
 import os
 from django.conf import settings
-from quiz.models import *
-from django.contrib.auth import authenticate, login, logout
-from django.http import HttpResponseRedirect
-from django.shortcuts import render
+from django.contrib.auth import logout
  
-from .forms import *
-
-from rest_framework.authentication import TokenAuthentication
-from rest_framework import generics, status
-from django_filters import rest_framework as filters
-import json
-
-
-# pq=PersonalizedQuiz.objects.get(user=request.user)
-#             pq.utc_time=request.POST['question']
-#             pq.save()
-
-
-
 def index(request):
     return render(request, 'fileloader/index.html')
 
@@ -57,7 +39,6 @@ def vasicekmodel(request):
             vector_length = int(request.POST.get('vector_length'))
             start_rate= float(request.POST.get('start_rate'))
             alpha= float(request.POST.get('alpha'))
-            beta= float(request.POST.get('beta'))
             sig= float(request.POST.get('sig'))
             IRscs = filter(lambda t: t[0] in form.cleaned_data['IRscenarios'], form.fields['IRscenarios'].choices)
             generate_only_vasicek(nosc, vector_length, start_rate,alpha, alpha,  sig, IRscs)
@@ -84,11 +65,9 @@ def calib_vasicekmodel(request):
                 year = 9999
                 customrates = request.FILES['file']
 
-            #try:
             calib_and_generate_vasicek(nosc, vector_length,year, curr, rates_to_calibrate, customrates, IRscs)
             return render(request, 'fileloader/esg_ready.html')
-            #except:
-                #return render(request, 'fileloader/error.html')
+
     else:
         form = CalibVasicek()
     return render(request, 'fileloader/vasicekmodel.html', {'form': form})
