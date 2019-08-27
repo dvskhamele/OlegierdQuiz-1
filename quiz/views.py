@@ -21,7 +21,7 @@ class TestingView(TemplateView):
             uquestion.question_taken_date=uquestion.wrong_answer_date=previous_day
             uquestion.date_of_next_rep=today
             uquestion.save()
-        return render(request, 'progress.html')            
+        return render(request, 'progress.html')
 
 class QuizMarkerMixin(object):
     @method_decorator(login_required)
@@ -115,45 +115,43 @@ def progress_reports(request, *args, **kwargs):
             continue
         progress_dict = {}
         uquestions = UQuestion.objects.filter(user=user,quiz=quiz)        
-        wrong_answer=uquestions.filter(today_wrong_answer=1).count()
+        wrong_answers=uquestions.filter(today_wrong_answer=1).count()
+        wrong_answers_count=wrong_answers
         correct_answer1=uquestions.filter(correct_answer=1).count()
         correct_answer2=uquestions.filter(correct_answer=2).count()
         correct_answer3=uquestions.filter(correct_answer=3).count()
         correct_answer4=uquestions.filter(correct_answer=4).count()
 
-        correct_answer1=abs(correct_answer1-wrong_answer)
-        
-        correct_answers2=0
-        correct_answers3=0
-        correct_answers4=0
+        correct_answer1=abs(correct_answer1-wrong_answers_count)
 
         if correct_answer2 > 0:
-            correct_answers2=uquestions.filter(correct_answer=2,today_wrong_answer=1).count()
+            overall_corrsect_answers2=wrong_answers.filter(correct_answer=2).count()
+            correct_answer2=correct_answer2-overall_correct_answers2
 
         if correct_answer3 > 0:
-            correct_answers3=uquestions.filter(correct_answer=3,today_wrong_answer=1).count()
+            overall_correct_answers3=wrong_answers.filter(correct_answer=3).count()
+            correct_answer3=correct_answer3-overall_correct_answers3
 
         if correct_answer4 > 0:
-            correct_answers4=uquestions.filter(correct_answer=4,today_wrong_answer=1).count()
+            overall_correct_answers4=wrong_answers.filter(correct_answer=4).count()
+            correct_answer4=correct_answer4-overall_correct_answers4
 
-        correct_answer2=correct_answer2-correct_answers2
-        correct_answer3=correct_answer3-correct_answers3
-        correct_answer4=correct_answer4-correct_answers4
+        progress_dict["quiz"] = quiz
 
-        try:
-            progres1=(50 * correct_answer1 /total_questions)
-            progres2=(25 * correct_answer2 /total_questions)
-            progres3=(12.5 * correct_answer3 /total_questions)
-            progres4=(7.5 * correct_answer4 /total_questions)
-            # progres5=(5 * correct_answer5 /total_question)
-            progress_percentage=progres1+progres2+progres3+progres4
-            progress_dict["quiz"] = quiz
-            progress_dict["quiz_report"] = str(round(min(progress_percentage,100),2))
-
+        if total_questions == 0:
+            progress_dict["quiz_report"] = 0
             progress_report.append(progress_dict)
+            continue
+        progres1=(50 * correct_answer1 /total_questions)
+        progres2=(25 * correct_answer2 /total_questions)
+        progres3=(12.5 * correct_answer3 /total_questions)
+        progres4=(7.5 * correct_answer4 /total_questions)
 
-        except PersonalizedQuiz.DoesNotExist:
-            return render(request, 'quiz/firstattemptprogress.html')
+        progress_percentage=progres1+progres2+progres3+progres4
+        progress_dict["quiz_report"] = str(round(min(progress_percentage,100),2))
+
+        progress_report.append(progress_dict)
+
 
     return progress_report
 
@@ -264,11 +262,11 @@ class QuizTake(FormView):
         if self.logged_in_user:
 
             try:
-                if self.sitting.get_first_question() != None:
+                if self.sitting.get_first_question() == None:
+                    return redirect('/quiz/quiz_index/') 
+                else:
                     self.question = self.sitting.get_first_question() 
                     self.progress = self.sitting.progress()
-                else:
-                    return redirect('/quiz/quiz_index/') 
             except Question.DoesNotExist:
                 self.sitting.delete()
                 return redirect('/quiz/quiz_index/')
@@ -468,7 +466,7 @@ class QuizTake(FormView):
                     modify.save()
                     context["undo_question"] = 1
                     context["remove_question"] = 0
-                    
+
                     context['question'] = self.question
                     context['quiz'] = self.quiz
                     if hasattr(self, 'previous'):
@@ -526,7 +524,7 @@ class QuizTake(FormView):
         
 
         guess = form.cleaned_data['answers']
-        print("guesssssss",guess)
+
         is_correct = self.question.check_if_correct(guess)
 
         if is_correct is True:
@@ -634,9 +632,6 @@ class QuizTake(FormView):
         )
 
         return self.request.session[self.quiz.anon_q_list()]
-
-    
-    
 
     def anon_next_question(self):
         next_question_id = self.request.session[self.quiz.anon_q_list()][0]
@@ -750,17 +745,15 @@ class quiz1(DetailView):
         max_questions=pq.max_questions
         return render(request, 'quiz/quiz_question.html', {'quiz':quiz,'max_questions':max_questions})        
 
-global repeat_question
 class quizrep(TemplateView):
     model = Quiz
     slug_field = 'url'
     def post(self, request, *args, **kwargs):
-        if request.method == 'POST':
-            quiz=Quiz.objects.get(url=self.kwargs['slug'])
-            pq=PersonalizedQuiz.objects.get(quiz=quiz, user=request.user)
-            repeat_questions=request.POST['repeat_questions']
-            pq.repeat_questions=repeat_questions
-            pq.save()
+        quiz=Quiz.objects.get(url=self.kwargs['slug'])
+        pq=PersonalizedQuiz.objects.get(quiz=quiz, user=request.user)
+        repeat_questions=request.POST['repeat_questions']
+        pq.repeat_questions=repeat_questions
+        pq.save()
         if pq.repeat_questions == "25":
             repeat_questions="Low"
         if pq.repeat_questions == "50":
@@ -775,12 +768,8 @@ class quizrep(TemplateView):
         repeat_questions=pq.repeat_questions
         if pq.repeat_questions == "25":
             repeat_questions="Low"
-        if pq.repeat_questions == "50":
+        elif pq.repeat_questions == "50":
             repeat_questions="Medium"
-        if pq.repeat_questions == "75":
+        elif pq.repeat_questions == "75":
             repeat_questions="High"
-        return render(request, 'quiz/quiz_repeat_questions.html', {'quiz':quiz,'repeat_questions':repeat_questions}) 
-
-
-# def slides(request):
-#     return render(request, 'slides.html')
+        return render(request, 'quiz/quiz_repeat_questions.html', {'quiz':quiz,'repeat_questions':repeat_questions})

@@ -11,9 +11,14 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+import environ
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+env = environ.Env(DEBUG=(bool, False),)
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 
 # Quick-start development settings - unsuitable for production
@@ -21,13 +26,13 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 
-SECRET_KEY = 'sa@z$@c)#-%a)tq@6f+ge2^em0s%p%4dm-4br9e1#_gggb$pdq'
+SECRET_KEY = env.get_value("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG =  env.get_value("DEBUG")
 
-#ALLOWED_HOSTS = ['olgierdbar.pythonanywhere.com', 'www.actuarialapps.live'] #['sampletesting.live']
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['127.0.0.1','olgierdbar.pythonanywhere.com', 'www.actuarialapps.live'] #['sampletesting.live']
+# ALLOWED_HOSTS = ['*']
 
 # Application definition
 
@@ -39,13 +44,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'fileloader',
-    #'debug_panel',
     'quiz',
     'timezone_field',
     'multichoice',
     'true_false',
     'essay',
-    #'debug_toolbar',
     'import_export',
     'rest_framework',
 ]
@@ -89,32 +92,27 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 20240
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
-DATABASES = {
-   'default': {
-       'ENGINE': 'django.db.backends.sqlite3',
-       'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-   }
+if DEBUG is True:
+    DATABASES = {
+       'default': {
+           'ENGINE': 'django.db.backends.sqlite3',
+           'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+       }
+    }
+
+else:
+    DATABASES = {
+    'default': env.db()
 }
 
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'olgierdb',
-#         'USER': 'olgieruser',
-#         'PASSWORD': 'olgierpass',
-#         'HOST': 'olgierdbar-1228.postgres.pythonanywhere-services.com',
-#         'PORT': 11228,
-#     }
-# }
 
 AUTH_USER_MODEL = 'quiz.User'
 #EMAIL_BACKEND = ‘django.core.mail.backends.smtp.EmailBackend’
 EMAIL_USE_TLS = True  
-EMAIL_HOST = 'smtp.gmail.com'  
 EMAIL_PORT = 587  
-EMAIL_HOST_USER = 'prashant.pythonmate@gmail.com'  
-EMAIL_HOST_PASSWORD = 'PythonMate@123'  
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_USER = env.get_value("EMAIL_HOST")
+EMAIL_HOST_PASSWORD = env.get_value("EMAIL_PASSWORD")
 
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
@@ -140,7 +138,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = env.get_value("TIMEZONE")
 
 USE_I18N = True
 
@@ -153,7 +151,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = '/home/olgierdbar/st_v00/fileloader/static'
+# STATIC_ROOT = '/home/olgierdbar/st_v00/fileloader/static'
+STATIC_ROOT=os.path.join(BASE_DIR, 'static/')
 
 STATICFILES_DIR = [
     os.path.join(BASE_DIR, 'static'),

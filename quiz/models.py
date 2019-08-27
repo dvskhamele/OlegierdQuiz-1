@@ -286,13 +286,11 @@ class Progress(models.Model):
                 score = int(match.group(1))
                 possible = int(match.group(2))
 
-                try:
-                    if int(possible) == 0:
-                        percent = 0
+                if int(possible) == 0:
+                    percent = 0
+                else:
                     percent = int(round((float(score) / float(possible))
                                         * 100))
-                except:
-                    percent = 0
 
                 output[cat.category] = [score, possible, percent]
 
